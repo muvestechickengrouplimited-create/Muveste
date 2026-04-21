@@ -1,0 +1,67 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Brand Colors */
+    --primary: #F5C518;
+    /* Yellow */
+    --accent: #E07B00;
+    /* Dark Orange */
+    --main: #1B6B3A;
+    /* Deep Green */
+
+    --background: #ffffff;
+    --foreground: #111827;
+
+    /* Profit Colors */
+    --profit-positive: #10B981;
+    /* Green text */
+    --profit-negative: #EF4444;
+    /* Red text */
+
+    /* Table Rows */
+    --row-even: #ffffff;
+    --row-odd: #EAF5EE;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+  }
+
+  /* Fallback body font (handled via next/font in layout) */
+  body {
+    font-family: 'Inter', sans-serif;
+  }
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+/* Fade in up on page load */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.hero-left  { animation: fadeInUp 0.6s ease forwards; }
+.hero-right { animation: fadeInUp 0.6s ease 0.2s forwards; opacity: 0; }
+.market-card { animation: fadeInUp 0.5s ease forwards; opacity: 0; }
+.market-card:nth-child(2) { animation-delay: 0.1s; }
+
+@layer utilities {
+  .font-mono-numbers {
+    font-family: 'JetBrains Mono', monospace;
+  }
+}
