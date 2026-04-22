@@ -187,3 +187,30 @@ export async function updateCell(range: string, rowIndex: number, colIndex: numb
     throw error;
   }
 }
+
+/**
+ * Updates a full row in the Google Sheet.
+ * @param range The name of the tab/range
+ * @param rowIndex The 1-indexed row number
+ * @param values Array of values for the row
+ */
+export async function updateRow(range: string, rowIndex: number, values: unknown[]) {
+  try {
+    const auth = getAuthToken();
+    const sheets = google.sheets({ version: 'v4', auth });
+
+    const cellRange = `${range}!A${rowIndex}`;
+
+    await withRetry(() => sheets.spreadsheets.values.update({
+      spreadsheetId: process.env.GOOGLE_SHEETS_ID,
+      range: cellRange,
+      valueInputOption: 'USER_ENTERED',
+      requestBody: {
+        values: [values],
+      },
+    }));
+  } catch (error) {
+    console.error(`Failed to update row in ${range}:`, error);
+    throw error;
+  }
+}

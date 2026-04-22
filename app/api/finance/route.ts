@@ -121,12 +121,21 @@ export async function GET(request: Request) {
       // Finance extras
       const dayFinExps = finExpData.filter(r => normalizeDate(r[0]) === normalizedDate);
       const dayExtras: Record<string, number> = { ef: 0, bu: 0, kBat: 0, kNya: 0, bf: 0 };
+      // Per-batch extras (keyed by batch name)
+      const batchExtras: Record<string, number> = {};
+      for (const name of allBatchNames) batchExtras[name] = 0;
 
+      // Build dynamic DEPT_KEY_MAP that includes per-batch entries
       const DEPT_KEY_MAP: Record<string, string> = {
         'egg farm': 'ef', 'broiler farm': 'bf',
         'kiosk batsinda': 'kBat', 'kiosk nyabugogo': 'kNya',
         'butchery': 'bu', 'butcher': 'bu',
       };
+      // Add per-batch mappings: "broiler — batch a" → batch key
+      for (const name of allBatchNames) {
+        DEPT_KEY_MAP[`broiler — ${name}`.toLowerCase()] = `batch_${name}`;
+        DEPT_KEY_MAP[`broiler - ${name}`.toLowerCase()] = `batch_${name}`;
+      }
 
       for (const r of dayFinExps) {
         const amount = parseNum(r[3]);
@@ -135,7 +144,13 @@ export async function GET(request: Request) {
           const share = amount / depts.length;
           for (const dept of depts) {
             const key = DEPT_KEY_MAP[dept];
-            if (key) dayExtras[key] = (dayExtras[key] || 0) + share;
+            if (!key) continue;
+            if (key.startsWith('batch_')) {
+              const batchName = key.replace('batch_', '');
+              batchExtras[batchName] = (batchExtras[batchName] || 0) + share;
+            } else {
+              dayExtras[key] = (dayExtras[key] || 0) + share;
+            }
           }
         }
       }
@@ -152,11 +167,12 @@ export async function GET(request: Request) {
       let bfTotalRev = 0, bfTotalExp = 0;
       const batchData: Record<string, { revenue: number; expenses: number }> = {};
       for (const [bname, vals] of Object.entries(broilerByBatch)) {
+        const bExtra = batchExtras[bname] || 0;
         bfTotalRev += vals.rev;
-        bfTotalExp += vals.exp;
-        batchData[`broiler_${bname}`] = { revenue: vals.rev, expenses: vals.exp };
+        bfTotalExp += vals.exp + bExtra;
+        batchData[`broiler_${bname}`] = { revenue: vals.rev, expenses: vals.exp + bExtra };
         tracker[`Broiler — ${bname}`] = {
-          value: vals.exp,
+          value: vals.exp + bExtra,
           submitted: bfDayRows.some(r => r[1] === bname),
         };
       }
@@ -167,7 +183,7 @@ export async function GET(request: Request) {
       const kNyaExp = (nyaRow ? parseNum(nyaRow[6]) : 0) + dayExtras.kNya;
 
       const totalRevenue = efRev + bfTotalRev + kBatRev + kNyaRev + buRev;
-      const totalExpenses = (efExp + dayExtras.ef) + (bfTotalExp + dayExtras.bf) + kBatExp + kNyaExp + (buExp + dayExtras.bu);
+      const totalExpenses = (efExp + dayExtras.ef) + bfTotalExp + kBatExp + kNyaExp + (buExp + dayExtras.bu);
 
       return NextResponse.json({
         date: normalizedDate,
@@ -211,11 +227,16 @@ export async function GET(request: Request) {
     for (const r of buData) { const d = normalizeDate(r[0]); if (d) allDates.add(d); }
     for (const r of finExpData) { const d = normalizeDate(r[0]); if (d) allDates.add(d); }
 
+    // Build dynamic DEPT_KEY_MAP including per-batch entries
     const DEPT_KEY_MAP: Record<string, string> = {
       'egg farm': 'ef', 'broiler farm': 'bf',
       'kiosk batsinda': 'kBat', 'kiosk nyabugogo': 'kNya',
       'butchery': 'bu', 'butcher': 'bu',
     };
+    for (const name of allBatchNames) {
+      DEPT_KEY_MAP[`broiler — ${name}`.toLowerCase()] = `batch_${name}`;
+      DEPT_KEY_MAP[`broiler - ${name}`.toLowerCase()] = `batch_${name}`;
+    }
 
     const finExtrasPerDate: Record<string, Record<string, number>> = {};
     for (const r of finExpData) {
@@ -229,7 +250,8 @@ export async function GET(request: Request) {
       if (!finExtrasPerDate[d]) finExtrasPerDate[d] = { ef: 0, bf: 0, kBat: 0, kNya: 0, bu: 0 };
       for (const deptLabel of depts) {
         const key = DEPT_KEY_MAP[deptLabel];
-        if (key) finExtrasPerDate[d][key] = (finExtrasPerDate[d][key] || 0) + share;
+        if (!key) continue;
+        finExtrasPerDate[d][key] = (finExtrasPerDate[d][key] || 0) + share;
       }
     }
 
@@ -245,12 +267,14 @@ export async function GET(request: Request) {
       const broilerByBatch = batchTotals(bfRows);
       let bfTotalRev = 0, bfTotalExp = 0;
       const batchFields: Record<string, number> = {};
+      const extras = finExtrasPerDate[dateStr] || {};
       for (const [bname, vals] of Object.entries(broilerByBatch)) {
+        const bExtra = extras[`batch_${bname}`] || 0;
         bfTotalRev += vals.rev;
-        bfTotalExp += vals.exp;
+        bfTotalExp += vals.exp + bExtra;
         batchFields[`broiler_${bname}_revenue`] = vals.rev;
-        batchFields[`broiler_${bname}_expenses`] = vals.exp;
-        batchFields[`broiler_${bname}_profit`] = vals.rev - vals.exp;
+        batchFields[`broiler_${bname}_expenses`] = vals.exp + bExtra;
+        batchFields[`broiler_${bname}_profit`] = vals.rev - (vals.exp + bExtra);
       }
 
       // Egg Kiosk
@@ -267,8 +291,7 @@ export async function GET(request: Request) {
       let buRev = 0, buExp = 0;
       for (const r of buRows) { buRev += parseNum(r[7]); buExp += parseNum(r[6]); }
 
-      // Finance extras
-      const extras = finExtrasPerDate[dateStr] || {};
+      // Finance extras (non-batch)
       efExp += extras.ef || 0;
       bfTotalExp += extras.bf || 0;
       kBatExp += extras.kBat || 0;

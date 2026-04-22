@@ -162,12 +162,16 @@ export async function POST(request: Request) {
     console.log(`[API] finance-expenses updated for ${date}. Proceeding to summary sync.`);
 
     // 2. Fetch today's department totals to calculate updated finance-summary row
-    const [eggFarm, broiler, eggKiosk, butcher] = await Promise.all([
+    const [eggFarm, broiler, eggKiosk, butcher, batchesData] = await Promise.all([
       getDepartmentTotals('egg-farm', date),
       getDepartmentTotals('broiler-farm', date),
       getDepartmentTotals('egg-kiosk', date),
       getDepartmentTotals('butcher', date),
+      getRows('broiler-batches'),
     ]);
+
+    // Get all batch names for mapping
+    const allBatchNames = (batchesData || []).slice(1).map((r: string[]) => r[0]).filter(Boolean);
 
     const efExtra = parseNum(financeExtras?.['Egg Farm']);
     const bfExtra = parseNum(financeExtras?.['Broiler Farm']);
@@ -175,12 +179,18 @@ export async function POST(request: Request) {
     const nyaExtra = parseNum(financeExtras?.['Kiosk Nyabugogo']);
     const buExtra = parseNum(financeExtras?.['Butchery']);
 
+    // Collect per-batch extras
+    let totalBatchExtras = 0;
+    for (const bname of allBatchNames) {
+      totalBatchExtras += parseNum(financeExtras?.[`Broiler \u2014 ${bname}`]);
+    }
+
     const efRev = parseNum(eggFarm.revenue); 
     const efExp = parseNum(eggFarm.expenses) + efExtra;
     const efProf = efRev - efExp;
 
     const bfRev = parseNum(broiler.revenue); 
-    const bfExp = parseNum(broiler.expenses) + bfExtra;
+    const bfExp = parseNum(broiler.expenses) + bfExtra + totalBatchExtras;
     const bfProf = bfRev - bfExp;
 
     // Specific kiosk breakdown

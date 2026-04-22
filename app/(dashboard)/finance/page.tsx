@@ -260,9 +260,7 @@ export default function FinanceDashboard() {
     'Butchery': { value: 0, submitted: false },
   });
 
-  const [financeExtras, setFinanceExtras] = useState<Record<string, number>>({
-    'Egg Farm': 0, 'Broiler Farm': 0, 'Kiosk Batsinda': 0, 'Kiosk Nyabugogo': 0, 'Butchery': 0
-  });
+  const [financeExtras, setFinanceExtras] = useState<Record<string, number>>({});
 
   const [bizRows, setBizRows] = useState([
     { name: '', department: '', amount: 0 },
@@ -290,7 +288,7 @@ export default function FinanceDashboard() {
   };
   for (const b of batches) departmentColors[`Broiler — ${b}`] = '#E07B00';
 
-  const totalDeptExpenses = departmentList.reduce((sum, dept) => sum + trackerData[dept].value, 0);
+  const totalDeptExpenses = departmentList.reduce((sum, dept) => sum + (trackerData[dept]?.value || 0), 0);
   const totalFinanceExtra = departmentList.reduce((sum, dept) => sum + (financeExtras[dept] || 0), 0);
 
   const calculateTotalBizExpenses = () => {
@@ -332,21 +330,22 @@ export default function FinanceDashboard() {
     buRev, buExp, buProfit,
     totalRev, totalExp, netProfitCalc,
   } = React.useMemo(() => {
-    // trackerData already includes financeAllocations from the API fix
+    // API returns decoupled base expenses, so we must manually add the allocated finance extras back
+    // for both the Manual Entry form inputs and the final save payload.
     const efR = Number(fields.eggFarmRevenue) || 0;
-    const efE = (trackerData['Egg Farm']?.value || 0);
+    const efE = (trackerData['Egg Farm']?.value || 0) + (financeExtras['Egg Farm'] || 0);
 
     const bfR = Number(fields.broilerRevenue) || 0;
-    const bfE = (trackerData['Broiler Farm']?.value || 0);
+    const bfE = (trackerData['Broiler Farm']?.value || 0) + (financeExtras['Broiler Farm'] || 0);
 
     const batR = Number(fields.kioskBatsindaRevenue) || 0;
-    const batE = (trackerData['Kiosk Batsinda']?.value || 0);
+    const batE = (trackerData['Kiosk Batsinda']?.value || 0) + (financeExtras['Kiosk Batsinda'] || 0);
 
     const nyaR = Number(fields.kioskNyabugogoRevenue) || 0;
-    const nyaE = (trackerData['Kiosk Nyabugogo']?.value || 0);
+    const nyaE = (trackerData['Kiosk Nyabugogo']?.value || 0) + (financeExtras['Kiosk Nyabugogo'] || 0);
 
     const buR = Number(fields.butcherRevenue) || 0;
-    const buE = (trackerData['Butchery']?.value || 0);
+    const buE = (trackerData['Butchery']?.value || 0) + (financeExtras['Butchery'] || 0);
 
     const ekR = batR + nyaR;
     const ekE = batE + nyaE;
@@ -363,7 +362,7 @@ export default function FinanceDashboard() {
       buRev: buR, buExp: buE, buProfit: buR - buE,
       totalRev: tRev, totalExp: tExp, netProfitCalc: tRev - tExp,
     };
-  }, [fields, trackerData, grandTotalExpenses]); // removed financeExtras from dependencies as they are already in trackerData values via API
+  }, [fields, trackerData, financeExtras, grandTotalExpenses]);
 
   const monthlyDeptTotals = React.useMemo(() => {
     if (period !== 'monthly') return null;
@@ -539,7 +538,7 @@ export default function FinanceDashboard() {
       if (!data || data.length === 0) {
         // Clear if nothing saved for this day
         setBizRows([{ name: '', department: '', amount: 0 }, { name: '', department: '', amount: 0 }]);
-        setFinanceExtras({ 'Egg Farm': 0, 'Broiler Farm': 0, 'Kiosk Batsinda': 0, 'Kiosk Nyabugogo': 0, 'Butchery': 0 });
+        setFinanceExtras({});
         return;
       }
 
@@ -548,7 +547,7 @@ export default function FinanceDashboard() {
         .filter((row: string[]) => row[1] !== 'Finance extra')
         .map((row: string[]) => ({
           name      : row[1],
-          department: row[2],
+          department: row[2] ? row[2].split(',').map((s: string) => s.trim()).filter(Boolean) : [],
           amount    : parseFloat(row[3]) || 0
         }));
 
@@ -590,12 +589,12 @@ export default function FinanceDashboard() {
     setTimeout(() => setJustUpdated(null), 1000);
   };
 
-  const recalculateExtras = (bizRows: any[]) => {
-    const newExtras: Record<string, number> = {
-      'Egg Farm': 0, 'Broiler Farm': 0, 'Kiosk Batsinda': 0, 'Kiosk Nyabugogo': 0, 'Butchery': 0
-    };
+  const recalculateExtras = (rows: any[]) => {
+    const newExtras: Record<string, number> = {};
+    // Initialize all department keys (including per-batch) to 0
+    for (const dept of departmentList) newExtras[dept] = 0;
 
-    bizRows.forEach(row => {
+    rows.forEach(row => {
       const selectedDepts = Array.isArray(row.department) 
         ? row.department 
         : (row.department === 'All Departments' ? departmentList : (row.department ? [row.department] : []));
@@ -603,7 +602,7 @@ export default function FinanceDashboard() {
       if (selectedDepts.length > 0 && row.amount) {
         const share = row.amount / selectedDepts.length;
         selectedDepts.forEach((dept: string) => {
-          if (newExtras[dept] !== undefined) {
+          if (dept in newExtras) {
             newExtras[dept] += share;
           }
         });
@@ -611,8 +610,6 @@ export default function FinanceDashboard() {
     });
 
     setFinanceExtras(newExtras);
-    // Pulse animation logic: find which depts changed
-    // For simplicity, we can just pulse any dept involved in the change
   };
 
   const addBizRow = () => {
@@ -705,9 +702,9 @@ export default function FinanceDashboard() {
       if (!token) return;
 
       // Calculate split for business expenses to distribute to departments in the summary sheet
-      const bizSplit: Record<string, number> = {
-        'Egg Farm': 0, 'Broiler Farm': 0, 'Kiosk Batsinda': 0, 'Kiosk Nyabugogo': 0, 'Butchery': 0
-      };
+      const bizSplit: Record<string, number> = {};
+      // Initialize all department keys (including per-batch) to 0
+      for (const dept of departmentList) bizSplit[dept] = 0;
       bizRows.forEach(exp => {
         const selectedDepts = Array.isArray(exp.department) 
           ? exp.department 
@@ -715,8 +712,8 @@ export default function FinanceDashboard() {
         
         if (selectedDepts.length > 0) {
           const splitAmount = (exp.amount || 0) / selectedDepts.length;
-          selectedDepts.forEach(dept => {
-            if (bizSplit[dept] !== undefined) {
+          selectedDepts.forEach((dept: string) => {
+            if (dept in bizSplit) {
               bizSplit[dept] += splitAmount;
             }
           });

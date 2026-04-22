@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { prependRow, getRows } from '../../../lib/sheets';
+import { prependRow, getRows, updateRow } from '../../../lib/sheets';
 import { formatDate, formatTime } from '../../../lib/utils';
 import * as admin from 'firebase-admin';
 
@@ -144,20 +144,46 @@ export async function POST(request: Request) {
       now.toISOString(),
     ];
 
-    await prependRow('broiler-farm', rowData);
+    const existingRows = await getRows('broiler-farm', true); // Bypass cache for precise check
+    let existingRowIndex = -1;
+    
+    if (existingRows && existingRows.length > 1) {
+      // Find row with same date and batch
+      // index 0 is header, so start from 1
+      for (let i = 1; i < existingRows.length; i++) {
+        if (existingRows[i][0] === date && existingRows[i][1] === batch) {
+          existingRowIndex = i + 1; // Google Sheets is 1-indexed
+          break;
+        }
+      }
+    }
+
+    if (existingRowIndex !== -1) {
+      await updateRow('broiler-farm', existingRowIndex, rowData);
+    } else {
+      await prependRow('broiler-farm', rowData);
+    }
 
     // 6. Log to admin-log tab
     await prependRow('admin-log', [
       formatDate(now),
       formatTime(now),
       'Broiler Farm',
-      `Daily report submitted (${batch})`,
+      existingRowIndex !== -1 
+        ? `Daily report updated (${batch} - ${date})`
+        : `Daily report submitted (${batch} - ${date})`,
       userEmail,
-      'Submitted',
+      existingRowIndex !== -1 ? 'Updated' : 'Submitted',
       now.toISOString(),
     ]);
 
-    return NextResponse.json({ success: true, totalWeight, revenue, profit }, { status: 201 });
+    return NextResponse.json({ 
+      success: true, 
+      totalWeight, 
+      revenue, 
+      profit, 
+      updated: existingRowIndex !== -1 
+    }, { status: existingRowIndex !== -1 ? 200 : 201 });
   } catch (error: unknown) {
     console.error('API Error in broiler-farm/route.ts [POST]:', error);
     return NextResponse.json(
@@ -174,6 +200,7 @@ export async function GET(request: Request) {
     const period = searchParams.get('period'); // 'monthly' | null
     const batch = searchParams.get('batch');
     const last = searchParams.get('last');
+    const date = searchParams.get('date');
 
     // Fetch all rows
     const rows = await getRows('broiler-farm');
@@ -185,6 +212,39 @@ export async function GET(request: Request) {
       return NextResponse.json({
         liveBirds: parseInt(lastRow?.[9]) || 0 // Live Birds is at index 9 now
       });
+    }
+
+    if (batch && date) {
+      const dataRows = (rows && rows.length > 1) ? rows.slice(1) : [];
+      const match = dataRows.find(r => r[0] === date && r[1] === batch);
+      if (match) {
+        return NextResponse.json({
+          success: true,
+          data: {
+            date:             match[0],
+            batch:            match[1],
+            feedQty:          match[2],
+            price:            match[3],
+            water:            match[4],
+            medications:      match[5],
+            numberOfBirds:    match[6],
+            mortality:        match[7],
+            birdsSold:        match[8],
+            liveBirds:        match[9],
+            avgWeight:        match[10],
+            kgsSold:          match[11],
+            totalWeight:      match[12],
+            pricePerKg:       match[13],
+            expenses:         match[14],
+            revenue:          match[15],
+            profit:           match[16],
+            notes:            match[17],
+            submittedBy:      match[18],
+            timestamp:        match[19],
+          }
+        });
+      }
+      return NextResponse.json({ success: false, error: 'Not found' }, { status: 404 });
     }
 
     if (batch) {
