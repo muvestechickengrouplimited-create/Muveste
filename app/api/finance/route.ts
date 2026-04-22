@@ -70,7 +70,7 @@ export async function GET(request: Request) {
       .filter(Boolean);
 
     // Utility: sum broiler revenue+expenses by batch for a set of rows
-    function batchTotals(rows: string[]) {
+    const batchTotals = (rows: string[][]) => {
       const out: Record<string, { rev: number; exp: number }> = {};
       for (const name of allBatchNames) out[name] = { rev: 0, exp: 0 };
       for (const r of rows) {
@@ -81,7 +81,7 @@ export async function GET(request: Request) {
         }
       }
       return out;
-    }
+    };
 
     // ── 1. Daily date pull ────────────────────────────────────────────────
     if (date) {

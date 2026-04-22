@@ -6,6 +6,7 @@ export interface StatCardProps {
   title: string;
   value: string | number;
   icon?: React.ReactNode;
+  color?: 'green' | 'yellow' | 'orange' | 'red' | 'blue';
   trend?: {
     value: string | number;
     isPositive?: boolean;
@@ -14,7 +15,17 @@ export interface StatCardProps {
   className?: string;
 }
 
-export function StatCard({ title, value, icon, trend, className }: StatCardProps) {
+export function StatCard({ title, value, icon, color, trend, className }: StatCardProps) {
+  const colorMap = {
+    green: 'bg-[#EAF5EE] text-[#1B6B3A]',
+    yellow: 'bg-[#FFF8E1] text-[#E07B00]',
+    orange: 'bg-[#FFF8E1] text-[#E07B00]',
+    red: 'bg-red-50 text-[#D9534F]',
+    blue: 'bg-blue-50 text-blue-600',
+  };
+
+  const colorClasses = color ? colorMap[color] : 'bg-[#EAF5EE] text-[#1B6B3A]';
+
   return (
     <Card className={cn('overflow-hidden', className)}>
       <CardContent className="p-6">
@@ -28,7 +39,7 @@ export function StatCard({ title, value, icon, trend, className }: StatCardProps
             </div>
           </div>
           {icon && (
-            <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-[#EAF5EE] text-[#1B6B3A]">
+            <div className={cn('flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full', colorClasses)}>
               {icon}
             </div>
           )}
