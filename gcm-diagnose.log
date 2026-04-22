@@ -1,0 +1,205 @@
+﻿Diagnose log at 2026-04-21T15:05:18Z
+
+AppPath: C:\Program Files\Git\mingw64\bin\git-credential-manager.exe
+InstallDir: C:\Program Files\Git\mingw64\bin\
+Version: 2.7.3+5fa7116896c82164996a609accd1c5ad90fe730a
+
+------------
+Diagnostic: Environment
+Skipped: False
+Success: True
+Exception: None
+Log:
+OSType: Windows
+OSVersion: 10.0 (build 22631)
+Reading environment variables... OK
+ Variables:
+ORIGINAL_TMP=C:/Users/user/AppData/Local/Temp
+ProgramFiles(x86)=C:\Program Files (x86)
+MSYSTEM=MINGW64
+ProgramW6432=C:\Program Files
+EXEPATH=C:\Program Files\Git
+ChocolateyInstall=C:\ProgramData\chocolatey
+ORIGINAL_PATH=C:\Program Files\Git\mingw64\bin;C:\Program Files\Git\usr\bin;C:\Users\user\bin;C:\Python314\Scripts;C:\Python314;C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;C:\Windows\System32\WindowsPowerShell\v1.0;C:\Windows\System32\OpenSSH;C:\ProgramData\chocolatey\bin;C:\Program Files\nodejs;C:\Program Files\Git\cmd;C:\Program Files\GitHub CLI;C:\Users\user\AppData\Local\Microsoft\WindowsApps;C:\Users\user\AppData\Local\Programs\Antigravity\bin;C:\Users\user\AppData\Roaming\npm
+PKG_CONFIG_SYSTEM_LIBRARY_PATH=C:/Program Files/Git/mingw64/lib
+APPDATA=C:\Users\user\AppData\Roaming
+TMP=C:\Users\user\AppData\Local\Temp
+PROCESSOR_ARCHITECTURE=AMD64
+INFOPATH=C:\Program Files\Git\mingw64\local\info;C:\Program Files\Git\mingw64\share\info;C:\Program Files\Git\usr\local\info;C:\Program Files\Git\usr\share\info;C:\Program Files\Git\usr\info;C:\Program Files\Git\share\info
+PATHEXT=.COM;.EXE;.BAT;.CMD;.VBS;.VBE;.JS;.JSE;.WSF;.WSH;.MSC;.PY;.PYW
+ProgramData=C:\ProgramData
+USERPROFILE=C:\Users\user
+PWD=C:/Users/user/30-plus
+CONFIG_SITE=C:/Program Files/Git/etc/config.site
+PROCESSOR_REVISION=9a04
+OLDPWD=C:/Users/user
+ChocolateyLastPathUpdate=134183254824029353
+FPS_BROWSER_APP_PROFILE_STRING=Internet Explorer
+FPS_BROWSER_USER_PROFILE_STRING=Default
+LOGONSERVER=\\LAPTOP-34E86GR7
+TEMP=C:\Users\user\AppData\Local\Temp
+PROGRAMFILES=C:\Program Files
+USERNAME=user
+PROCESSOR_IDENTIFIER=Intel64 Family 6 Model 154 Stepping 4, GenuineIntel
+GIT_EXEC_PATH=C:/Program Files/Git/mingw64/libexec/git-core
+PLINK_PROTOCOL=ssh
+COMMONPROGRAMFILES=C:\Program Files\Common Files
+_=C:/Program Files/Git/mingw64/bin/git
+PATH=C:/Program Files/Git/mingw64/libexec/git-core;C:\Users\user\bin;C:\Program Files\Git\mingw64\bin;C:\Program Files\Git\usr\local\bin;C:\Program Files\Git\usr\bin;C:\Program Files\Git\usr\bin;C:\Program Files\Git\mingw64\bin;C:\Program Files\Git\usr\bin;C:\Users\user\bin;C:\Python314\Scripts;C:\Python314;C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;C:\Windows\System32\WindowsPowerShell\v1.0;C:\Windows\System32\OpenSSH;C:\ProgramData\chocolatey\bin;C:\Program Files\nodejs;C:\Program Files\Git\cmd;C:\Program Files\GitHub CLI;C:\Users\user\AppData\Local\Microsoft\WindowsApps;C:\Users\user\AppData\Local\Programs\Antigravity\bin;C:\Users\user\AppData\Roaming\npm;C:\Program Files\Git\usr\bin\vendor_perl;C:\Program Files\Git\usr\bin\core_perl
+OneDrive=C:\Users\user\OneDrive
+LOCALAPPDATA=C:\Users\user\AppData\Local
+MSYSTEM_CARCH=x86_64
+__PSLockDownPolicy=0
+CommonProgramFiles(x86)=C:\Program Files (x86)\Common Files
+ZES_ENABLE_SYSMAN=1
+PKG_CONFIG_SYSTEM_INCLUDE_PATH=C:/Program Files/Git/mingw64/include
+PROCESSOR_LEVEL=6
+MINGW_CHOST=x86_64-w64-mingw32
+HOSTNAME=LAPTOP-34E86GR7
+HOMEPATH=\Users\user
+DISPLAY=needs-to-be-defined
+IGCCSVC_DB=AQAAANCMnd8BFdERjHoAwE/Cl+sBAAAAakizKmYe80a53CCNBoEkJgQAAAACAAAAAAAQZgAAAAEAACAAAACmtZYrgGs19sa2tTdFqdlANRYQVQaa2m1YQjysp8WsZQAAAAAOgAAAAAIAACAAAAAeUln46bd/oTRM3q+RgXaUcDWnKfZDhGFOOjYOKjw//2AAAAC/l7EGspax5TPKCkC/0c8rfZ1R4q1N3QL6ZUOTVgIfZJds9H1JilzqxYyLyWMiDRoU3+jpkALYcqIFRBjSlhmiGut8XHG8v00/vnTD4rpKWq0rr8OZWolT58FE0dQ764NAAAAAOsoSTuT+LBEJWdPqQ8il18V+bKbUA4b5qvPMeD8K1C0hzqVX5sPrNf9WX3m175nH0srMtbC2i3QpKKNpeHrtqw==
+MANPATH=C:\Program Files\Git\mingw64\local\man;C:\Program Files\Git\mingw64\share\man;C:\Program Files\Git\usr\local\man;C:\Program Files\Git\usr\share\man;C:\Program Files\Git\usr\man;C:\Program Files\Git\share\man
+WINDIR=C:\Windows
+USERDOMAIN=LAPTOP-34E86GR7
+ALLUSERSPROFILE=C:\ProgramData
+CommonProgramW6432=C:\Program Files\Common Files
+SYSTEMROOT=C:\Windows
+TERM=xterm-256color
+SHELL=C:\Program Files\Git\usr\bin\bash.exe
+EFC_10984=1
+SHLVL=1
+SESSIONNAME=Console
+DriverData=C:\Windows\System32\Drivers\DriverData
+HOMEDRIVE=C:
+GIT_TRACE2_PARENT_SID=7dbb320f-f01a-442f-97c8-f910ec27c0d0
+ACLOCAL_PATH=C:\Program Files\Git\mingw64\share\aclocal;C:\Program Files\Git\usr\share\aclocal
+NUMBER_OF_PROCESSORS=12
+OS=Windows_NT
+MSYSTEM_PREFIX=C:/Program Files/Git/mingw64
+LANG=en_US.UTF-8
+MSYSTEM_CHOST=x86_64-w64-mingw32
+MINGW_PREFIX=C:/Program Files/Git/mingw64
+ORIGINAL_TEMP=C:/Users/user/AppData/Local/Temp
+HOME=C:\Users\user
+PSModulePath=C:\Program Files\WindowsPowerShell\Modules;C:\Windows\system32\WindowsPowerShell\v1.0\Modules
+SYSTEMDRIVE=C:
+PROMPT=$P$G
+TMPDIR=C:\Users\user\AppData\Local\Temp
+MINGW_PACKAGE_PREFIX=mingw-w64-x86_64
+PS1=\[\033]0;$TITLEPREFIX:$PWD\007\]\n\[\033[32m\]\u@\h \[\033[35m\]$MSYSTEM \[\033[33m\]\w\[\033[36m\]`__git_ps1`\[\033[0m\]\n$ 
+COMPUTERNAME=LAPTOP-34E86GR7
+SSH_ASKPASS=C:/Program Files/Git/mingw64/bin/git-askpass.exe
+COMSPEC=C:\Windows\system32\cmd.exe
+PKG_CONFIG_PATH=C:\Program Files\Git\mingw64\lib\pkgconfig;C:\Program Files\Git\mingw64\share\pkgconfig
+USERDOMAIN_ROAMINGPROFILE=LAPTOP-34E86GR7
+PUBLIC=C:\Users\Public
+
+
+------------
+Diagnostic: File system
+Skipped: False
+Success: True
+Exception: None
+Log:
+Temporary directory is 'C:\Users\user\AppData\Local\Temp\'...
+Checking basic file I/O...
+Writing to temporary file 'C:\Users\user\AppData\Local\Temp\21c44c73bf50ff4f6122fcd9'... OK
+Reading from temporary file 'C:\Users\user\AppData\Local\Temp\21c44c73bf50ff4f6122fcd9'... OK
+Deleting temporary file 'C:\Users\user\AppData\Local\Temp\21c44c73bf50ff4f6122fcd9'... OK
+Testing IFileSystem instance...
+UserHomePath: C:\Users\user
+UserDataDirectoryPath: C:\Users\user\.gcm
+GetCurrentDirectory(): C:\Users\user\30-plus
+
+------------
+Diagnostic: Networking
+Skipped: False
+Success: True
+Exception: None
+Log:
+Checking networking and HTTP stack...
+Creating HTTP client... OK
+IsNetworkAvailable: True
+Sending HEAD request to http://example.com...Sending HEAD request to https://example.com... OK
+ OK
+Acquiring free TCP port... OK
+Testing local HTTP loopback connections...
+Creating new HTTP listener for http://localhost:63881/... OK
+Waiting for loopback connection... OK
+Writing response... OK
+Waiting for response data... OK
+Loopback connection data OK
+
+------------
+Diagnostic: Git
+Skipped: False
+Success: True
+Exception: None
+Log:
+Getting Git version... OK
+Git version is '2.53.0.windows.2'
+Locating current repository...Git repository at 'C:/Users/user/30-plus/.git'
+ OK
+Listing all Git configuration... OK
+Git configuration:
+file:C:/Program Files/Git/etc/gitconfig	diff.astextplain.textconv=astextplain
+file:C:/Program Files/Git/etc/gitconfig	filter.lfs.clean=git-lfs clean -- %f
+file:C:/Program Files/Git/etc/gitconfig	filter.lfs.smudge=git-lfs smudge -- %f
+file:C:/Program Files/Git/etc/gitconfig	filter.lfs.process=git-lfs filter-process
+file:C:/Program Files/Git/etc/gitconfig	filter.lfs.required=true
+file:C:/Program Files/Git/etc/gitconfig	http.sslbackend=schannel
+file:C:/Program Files/Git/etc/gitconfig	core.autocrlf=true
+file:C:/Program Files/Git/etc/gitconfig	core.fscache=true
+file:C:/Program Files/Git/etc/gitconfig	core.symlinks=false
+file:C:/Program Files/Git/etc/gitconfig	pull.rebase=false
+file:C:/Program Files/Git/etc/gitconfig	credential.helper=manager
+file:C:/Program Files/Git/etc/gitconfig	credential.https://dev.azure.com.usehttppath=true
+file:C:/Program Files/Git/etc/gitconfig	init.defaultbranch=master
+file:C:/Users/user/.gitconfig	user.email=caprorg1@gmail.com
+file:C:/Users/user/.gitconfig	user.name=caprorg1-dev
+file:.git/config	core.repositoryformatversion=0
+file:.git/config	core.filemode=false
+file:.git/config	core.bare=false
+file:.git/config	core.logallrefupdates=true
+file:.git/config	core.symlinks=false
+file:.git/config	core.ignorecase=true
+file:.git/config	remote.origin.url=https://github.com/30plusltd-stack/30-plus.git
+file:.git/config	remote.origin.fetch=+refs/heads/*:refs/remotes/origin/*
+
+
+------------
+Diagnostic: Credential storage
+Skipped: False
+Success: True
+Exception: None
+Log:
+ICredentialStore instance is of type: CredentialStore
+Writing test credential... OK
+Reading test credential... OK
+Deleting test credential... OK
+
+------------
+Diagnostic: Microsoft authentication (AAD/MSA)
+Skipped: False
+Success: True
+Exception: None
+Log:
+Broker is not enabled.
+Flow type is: Auto
+Gathering MSAL token cache data... OK
+CacheDirectory: C:\Users\user\AppData\Local\.IdentityService
+CacheFileName: msal.cache
+CacheFilePath: C:\Users\user\AppData\Local\.IdentityService\msal.cache
+Creating cache helper... OK
+Verifying MSAL token cache persistence... OK
+
+------------
+Diagnostic: GitHub API
+Skipped: False
+Success: True
+Exception: None
+Log:
+Using 'https://github.com/' as API target.
+Querying '/meta' endpoint... OK
+
