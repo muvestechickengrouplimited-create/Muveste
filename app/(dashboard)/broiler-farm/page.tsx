@@ -138,11 +138,10 @@ export default function BroilerFarmDashboard() {
   const todayRecords  = filteredRecords.filter((r) => r.date === todayStr);
   
   // For summary cards, if "All" is selected, we show totals across all batches today
-  // If a specific batch is selected, we show totals for that batch today
-  const totalLiveBirds = todayRecords.reduce((s, r) => s + (r.liveBirds || 0), 0);
-  const revenue        = todayRecords.reduce((s, r) => s + (r.revenue || 0), 0);
-  const expenses       = todayRecords.reduce((s, r) => s + (r.expenses || 0), 0);
-  const profit         = todayRecords.reduce((s, r) => s + (r.profit || 0), 0);
+  const totalOpening   = todayRecords.reduce((s, r) => s + (r.numberOfBirds || 0), 0);
+  const totalMortality = todayRecords.reduce((s, r) => s + (r.mortality || 0), 0);
+  const totalSold      = todayRecords.reduce((s, r) => s + (r.birdsSold || 0), 0);
+  const totalClosing   = todayRecords.reduce((s, r) => s + (r.liveBirds || 0), 0);
 
   // Recent submissions
   const recent = filteredRecords.slice(0, 20);
@@ -202,28 +201,28 @@ export default function BroilerFarmDashboard() {
       {/* ── Summary Cards ───────────────────────────────────────────────── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
-          title="Number of birds"
-          value={totalLiveBirds.toLocaleString()}
+          title="Total Opening"
+          value={totalOpening.toLocaleString()}
           color="green"
           icon={<BirdIcon />}
         />
         <StatCard
-          title="Revenues"
-          value={formatRWF(revenue)}
-          color="green"
-          icon={<RevenueIcon />}
+          title="Mortality"
+          value={totalMortality.toLocaleString()}
+          color="red"
+          icon={<MortalityIcon />}
         />
         <StatCard
-          title="Expenses"
-          value={formatRWF(expenses)}
+          title="Birds Sold"
+          value={totalSold.toLocaleString()}
           color="orange"
-          icon={<ExpenseIcon />}
+          icon={<BirdIcon />}
         />
         <StatCard
-          title="Profit"
-          value={formatRWF(profit)}
-          color={profit >= 0 ? 'green' : 'red'}
-          icon={<RevenueIcon />}
+          title="Current Stock"
+          value={totalClosing.toLocaleString()}
+          color="green"
+          icon={<BirdIcon />}
         />
       </div>
 
@@ -251,8 +250,8 @@ export default function BroilerFarmDashboard() {
                     <p className="text-lg font-bold text-[#1B6B3A] font-mono">{batchLiveBirds}</p>
                   </div>
                   <div>
-                    <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Total Rev</p>
-                    <p className="text-lg font-bold text-[#E07B00] font-mono">{formatRWF(batchRevenue)}</p>
+                    <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Mortality</p>
+                    <p className="text-lg font-bold text-red-500 font-mono">{batchToday?.mortality || 0}</p>
                   </div>
                 </div>
               </div>
@@ -305,9 +304,9 @@ export default function BroilerFarmDashboard() {
                       <TableHead className="font-bold text-[10px] uppercase">Date</TableHead>
                       {selectedBatch === 'All' && <TableHead className="font-bold text-[10px] uppercase">Batch</TableHead>}
                       <TableHead className="font-bold text-[10px] uppercase text-right">Opening</TableHead>
+                      <TableHead className="font-bold text-[10px] uppercase text-right">Mortality</TableHead>
+                      <TableHead className="font-bold text-[10px] uppercase text-right">Sold</TableHead>
                       <TableHead className="font-bold text-[10px] uppercase text-right">Closing</TableHead>
-                      <TableHead className="font-bold text-[10px] uppercase text-right">Revenue</TableHead>
-                      <TableHead className="font-bold text-[10px] uppercase text-right">Profit</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -324,14 +323,14 @@ export default function BroilerFarmDashboard() {
                         <TableCell className="font-mono text-right text-xs">
                           {record.numberOfBirds}
                         </TableCell>
-                        <TableCell className="font-mono text-right text-[#1B6B3A] font-bold text-xs">
-                          {record.liveBirds}
+                        <TableCell className="font-mono text-right text-red-500 font-bold text-xs">
+                          {record.mortality}
                         </TableCell>
                         <TableCell className="font-mono text-right text-[#E07B00] font-bold text-xs">
-                          {formatRWF(record.revenue)}
+                          {record.birdsSold}
                         </TableCell>
-                        <TableCell className={`font-mono text-right font-bold text-xs ${record.profit >= 0 ? 'text-[#1B6B3A]' : 'text-red-500'}`}>
-                          {formatRWF(record.profit)}
+                        <TableCell className="font-mono text-right text-[#1B6B3A] font-bold text-xs">
+                          {record.liveBirds}
                         </TableCell>
                       </TableRow>
                     ))}

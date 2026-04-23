@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { prependRow, getRows } from '../../../lib/sheets';
 import { formatDate, formatTime } from '../../../lib/utils';
 import * as admin from 'firebase-admin';
+import { google } from 'googleapis';
 
 // Initialize Firebase Admin
 if (!admin.apps.length) {
@@ -358,7 +359,7 @@ export async function GET(request: Request) {
   }
 }
 
-// ─── POST — append finance summary row ─────────────────────────────────────
+// ─── POST — save/overwrite finance summary row (one per date) ─────────────────
 export async function POST(request: Request) {
   try {
     const authHeader = request.headers.get('Authorization');
@@ -402,7 +403,7 @@ export async function POST(request: Request) {
     const netProf = totalRev - totalExp;
 
     const now = new Date();
-    const rowData = [
+    const newRow = [
       date,
       efRev, efExp, efProf,
       bfRev, bfExp, bfProf,
@@ -413,13 +414,42 @@ export async function POST(request: Request) {
       now.toISOString(),
     ];
 
-    await prependRow('finance-summary', rowData);
+    // ── "Delete Today First, Then Save" strategy ─────────────────────────────
+    // This ensures only ONE row per date is ever stored in finance-summary.
+    const authClient = new google.auth.GoogleAuth({
+      credentials: {
+        client_email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
+        private_key: process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+      },
+      scopes: ['https://www.googleapis.com/auth/spreadsheets'],
+    });
+    const sheets = google.sheets({ version: 'v4', auth: authClient });
+
+    const currentRows = await getRows('finance-summary', true); // bypass cache
+    const header = currentRows[0] || [];
+    // Remove any existing row for this date, then prepend the new one
+    const otherRows = currentRows.slice(1).filter(r => normalizeDate(r[0]) !== normalizeDate(date));
+
+    await sheets.spreadsheets.values.clear({
+      spreadsheetId: process.env.GOOGLE_SHEETS_ID as string,
+      range: 'finance-summary',
+    });
+    await sheets.spreadsheets.values.update({
+      spreadsheetId: process.env.GOOGLE_SHEETS_ID as string,
+      range: 'finance-summary!A1',
+      valueInputOption: 'USER_ENTERED',
+      requestBody: {
+        values: [header, newRow, ...otherRows],
+      },
+    });
+
+    // Log to admin-log
     await prependRow('admin-log', [
       formatDate(now), formatTime(now), 'Finance',
-      'Daily summary manually saved', userEmail, 'Submitted', now.toISOString(),
+      'Daily summary saved (upsert)', userEmail, 'Submitted', now.toISOString(),
     ]);
 
-    return NextResponse.json({ success: true, netProfit: netProf }, { status: 201 });
+    return NextResponse.json({ success: true, netProfit: netProf }, { status: 200 });
   } catch (error) {
     console.error('API Error in finance/route.ts [POST]:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
