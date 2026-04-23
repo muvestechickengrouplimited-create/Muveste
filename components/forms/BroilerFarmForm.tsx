@@ -77,7 +77,6 @@ export function BroilerFarmForm({ onSubmitSuccess }: { onSubmitSuccess?: () => v
   const [kgsSold,       setKgsSold]       = useState(0);
   const [revenue,       setRevenue]       = useState(0);
   const [isPrefilled,   setIsPrefilled]   = useState(false);
-  const [isUpdateMode,  setIsUpdateMode]  = useState(false);
 
   // Full field state
   const [fields, setFields] = useState({
@@ -110,24 +109,6 @@ export function BroilerFarmForm({ onSubmitSuccess }: { onSubmitSuccess?: () => v
       });
   }, []);
 
-  useEffect(() => {
-    const saved = localStorage.getItem(MEMORY_KEY);
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        if (parsed && Object.keys(parsed).length > 0) {
-          setFields(prev => ({ ...prev, ...parsed, date: prev.date }));
-          if (parsed.numberOfBirds !== undefined) setNumberOfBirds(parsed.numberOfBirds);
-          if (parsed.avgWeight !== undefined) setAvgWeight(parsed.avgWeight);
-          if (parsed.birdsSold !== undefined) setBirdsSold(parsed.birdsSold);
-          if (parsed.pricePerKg !== undefined) setPricePerKg(parsed.pricePerKg);
-        }
-      } catch (e) {
-        console.error('Failed to parse memory', e);
-      }
-    }
-  }, []);
-
   // Real-time auto-calculation
   useEffect(() => {
     const birds  = Number(numberOfBirds) || 0;
@@ -157,57 +138,29 @@ export function BroilerFarmForm({ onSubmitSuccess }: { onSubmitSuccess?: () => v
   const soldBirdsNum = Number(birdsSold) || 0;
   const liveBirds = (Number(numberOfBirds) || 0) - mortalityNum - soldBirdsNum;
 
-  // Check if a report already exists for the selected date and batch
+  // Check for the last report to prefill live birds
   useEffect(() => {
-    if (!fields.batch || !fields.date) {
-      setIsUpdateMode(false);
+    if (!fields.batch) {
       return;
     }
 
-    fetch(`/api/broiler-farm?batch=${fields.batch}&date=${fields.date}`)
+    // Only pull livebirds from the LAST report
+    fetch(`/api/broiler-farm?batch=${fields.batch}&last=1`)
       .then(r => r.json())
-      .then(result => {
-        if (result.success && result.data) {
-          const d = result.data;
-          setFields(prev => ({
-            ...prev,
-            feedQty:       String(d.feedQty),
-            water:         String(d.water),
-            medications:   d.medications || '',
-            numberOfBirds: String(d.numberOfBirds),
-            mortality:     String(d.mortality),
-            birdsSold:     String(d.birdsSold || '0'),
-            avgWeight:     String(d.avgWeight),
-            pricePerKg:    String(d.pricePerKg),
-            price:         String(d.price),
-            expenses:      String(d.expenses),
-            notes:         d.notes || '',
-          }));
-          setNumberOfBirds(String(d.numberOfBirds));
-          setAvgWeight(String(d.avgWeight));
-          setBirdsSold(String(d.birdsSold || '0'));
-          setPricePerKg(String(d.pricePerKg));
-          setIsUpdateMode(true);
-          setIsPrefilled(false);
+      .then(data => {
+        if (data && data.liveBirds !== undefined) {
+          const val = String(data.liveBirds);
+          setFields(prev => ({ ...prev, numberOfBirds: val, mortality: '0', birdsSold: '0', feedQty: '', water: '', medications: '', avgWeight: '', pricePerKg: '', price: '', notes: '' }));
+          setNumberOfBirds(val);
+          setIsPrefilled(true);
         } else {
-          setIsUpdateMode(false);
-          // If not in update mode, we still might want to prefill live birds from the LAST report
-          fetch(`/api/broiler-farm?batch=${fields.batch}&last=1`)
-            .then(r => r.json())
-            .then(data => {
-              if (data && data.liveBirds !== undefined) {
-                const val = String(data.liveBirds);
-                setFields(prev => ({ ...prev, numberOfBirds: val, mortality: '0', birdsSold: '0', feedQty: '', water: '', medications: '', avgWeight: '', pricePerKg: '', price: '', notes: '' }));
-                setNumberOfBirds(val);
-                setIsPrefilled(true);
-              }
-            }).catch(() => {});
+          setIsPrefilled(false);
         }
       })
       .catch(() => {
-        setIsUpdateMode(false);
+        setIsPrefilled(false);
       });
-  }, [fields.batch, fields.date]);
+  }, [fields.batch]);
 
   function updateField(name: keyof typeof fields, value: string) {
     const updated = { ...fields, [name]: value };
@@ -301,7 +254,6 @@ export function BroilerFarmForm({ onSubmitSuccess }: { onSubmitSuccess?: () => v
       } else {
         toast('✅ Report submitted successfully!', 'success');
       }
-      localStorage.setItem(MEMORY_KEY, JSON.stringify(fields));
 
       resetForm();
       router.refresh();
@@ -324,15 +276,6 @@ export function BroilerFarmForm({ onSubmitSuccess }: { onSubmitSuccess?: () => v
             <CardDescription className="text-sm text-gray-500 mt-1">
               Track feed, mortality, and sales per batch.
             </CardDescription>
-            {isUpdateMode && (
-              <div className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-50 border border-blue-100">
-                <span className="relative flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
-                </span>
-                <span className="text-[10px] font-bold text-blue-600 uppercase tracking-tight">Update Mode: Report already exists for this date</span>
-              </div>
-            )}
           </div>
           <div className="bg-[#FFF8E1] p-2 rounded-xl">
              <svg className="w-6 h-6 text-[#E07B00]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
