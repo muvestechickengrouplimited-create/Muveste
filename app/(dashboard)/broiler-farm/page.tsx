@@ -68,6 +68,24 @@ const ExpenseIcon = () => (
   </svg>
 );
 
+const FeedIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" className="w-6 h-6" stroke="currentColor" strokeWidth={1.8}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+  </svg>
+);
+
+const WaterIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" className="w-6 h-6" stroke="currentColor" strokeWidth={1.8}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M12 2.25c-2.483 3.65-6 6.885-6 10.75 0 3.314 2.686 6 6 6s6-2.686 6-6c0-3.865-3.517-7.1-6-10.75z" />
+  </svg>
+);
+
+const MedicationIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" className="w-6 h-6" stroke="currentColor" strokeWidth={1.8}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
+  </svg>
+);
+
 // ─── Page ────────────────────────────────────────────────────────────────────
 export default function BroilerFarmDashboard() {
   const [records, setRecords] = useState<BroilerFarmRecord[]>([]);
@@ -142,6 +160,12 @@ export default function BroilerFarmDashboard() {
   const revenue        = todayRecords.reduce((s, r) => s + (r.revenue    || 0), 0);
   const expenses       = todayRecords.reduce((s, r) => s + (r.expenses   || 0), 0);
   const profit         = revenue - expenses;
+  const totalFeedQty   = todayRecords.reduce((s, r) => s + (r.feedQty    || 0), 0);
+  const avgFeedPrice   = todayRecords.length > 0 ? (todayRecords.reduce((s, r) => s + (r.price || 0), 0) / todayRecords.length) : 0;
+  const totalWater     = todayRecords.reduce((s, r) => s + (r.water      || 0), 0);
+  const totalMortality = todayRecords.reduce((s, r) => s + (r.mortality  || 0), 0);
+  const meds           = todayRecords.map(r => r.medications).filter(m => m && m.trim().length > 0);
+  const medications    = meds.length > 0 ? meds.join(', ') : 'None';
 
   // Recent submissions
   const recent = filteredRecords.slice(0, 20);
@@ -200,6 +224,7 @@ export default function BroilerFarmDashboard() {
 
       {/* ── Summary Cards ───────────────────────────────────────────────── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Row 1: Core Financials & Stock */}
         <StatCard
           title="Number of Birds"
           value={totalLiveBirds.toLocaleString()}
@@ -223,6 +248,41 @@ export default function BroilerFarmDashboard() {
           value={formatRWF(profit)}
           color={profit >= 0 ? 'green' : 'red'}
           icon={<RevenueIcon />}
+        />
+        
+        {/* Row 2: Operational Metrics */}
+        <StatCard
+          title="Mortality"
+          value={totalMortality.toLocaleString()}
+          color="red"
+          icon={<MortalityIcon />}
+        />
+        <StatCard
+          title="Feed Qty"
+          value={`${totalFeedQty.toLocaleString()} kg`}
+          color="orange"
+          icon={<FeedIcon />}
+        />
+        <StatCard
+          title="Feed Price"
+          value={avgFeedPrice > 0 ? formatRWF(avgFeedPrice) : '0 RWF'}
+          color="orange"
+          icon={<FeedIcon />}
+        />
+        <StatCard
+          title="Water"
+          value={`${totalWater.toLocaleString()} L`}
+          color="blue"
+          icon={<WaterIcon />}
+        />
+      </div>
+
+      <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard
+          title="Medication"
+          value={medications}
+          color="green"
+          icon={<MedicationIcon />}
         />
       </div>
 
