@@ -166,94 +166,11 @@ export async function POST(request: Request) {
       }
     });
 
-    console.log(`[API] finance-expenses updated for ${date}. Proceeding to summary sync.`);
-
-    // 2. Fetch today's department totals to calculate updated finance-summary row
-    const [eggFarm, broiler, eggKiosk, butcher, batchesData] = await Promise.all([
-      getDepartmentTotals('egg-farm', date),
-      getDepartmentTotals('broiler-farm', date),
-      getDepartmentTotals('egg-kiosk', date),
-      getDepartmentTotals('butcher', date),
-      getRows('broiler-batches'),
-    ]);
-
-    // Get all batch names for mapping
-    const allBatchNames = (batchesData || []).slice(1).map((r: string[]) => r[0]).filter(Boolean);
-
-    const efExtra = parseNum(financeExtras?.['Egg Farm']);
-    const bfExtra = parseNum(financeExtras?.['Broiler Farm']);
-    const batExtra = parseNum(financeExtras?.['Kiosk Batsinda']);
-    const nyaExtra = parseNum(financeExtras?.['Kiosk Nyabugogo']);
-    const buExtra = parseNum(financeExtras?.['Butchery']);
-
-    // Collect per-batch extras
-    let totalBatchExtras = 0;
-    for (const bname of allBatchNames) {
-      totalBatchExtras += parseNum(financeExtras?.[`Broiler \u2014 ${bname}`]);
-    }
-
-    const efRev = parseNum(eggFarm.revenue); 
-    const efExp = parseNum(eggFarm.expenses) + efExtra;
-    const efProf = efRev - efExp;
-
-    const bfRev = parseNum(broiler.revenue); 
-    const bfExp = parseNum(broiler.expenses) + bfExtra + totalBatchExtras;
-    const bfProf = bfRev - bfExp;
-
-    // Specific kiosk breakdown
-    const kRows = eggKiosk.rows || [];
-    const batRow = kRows.find(r => r[1] === 'Batsinda, Kigali' || (r[1] && String(r[1]).includes('Batsinda')));
-    const nyaRow = kRows.find(r => r[1] === 'Nyabugogo, Kigali' || (r[1] && String(r[1]).includes('Nyabugogo')));
-
-    const batRev = batRow ? parseNum(batRow[7]) : 0;
-    const batExp = (batRow ? parseNum(batRow[6]) : 0) + batExtra;
-    const batProf = batRev - batExp;
-
-    const nyaRev = nyaRow ? parseNum(nyaRow[7]) : 0;
-    const nyaExp = (nyaRow ? parseNum(nyaRow[6]) : 0) + nyaExtra;
-    const nyaProf = nyaRev - nyaExp;
-
-    const buRev = parseNum(butcher.revenue); 
-    const buExp = parseNum(butcher.expenses) + buExtra;
-    const buProf = buRev - buExp;
-
-    const totalRev = efRev + bfRev + batRev + nyaRev + buRev;
-    const totalExp = efExp + bfExp + batExp + nyaExp + buExp;
-    const netProf = totalRev - totalExp;
-
-    const summaryRow = [
-      date,
-      efRev, efExp, efProf,
-      bfRev, bfExp, bfProf,
-      batRev, batExp, batProf,
-      nyaRev, nyaExp, nyaProf,
-      buRev, buExp, buProf,
-      totalRev, totalExp, netProf,
-      timestamp
-    ];
-
-    // 3. Rewrite finance-summary (Daily Aggregate) with "Delete Today First" strategy
-    const currentSummaryRows = await getRows('finance-summary');
-    const summaryHeader = currentSummaryRows[0] || [];
-    const filteredSummaryRows = currentSummaryRows.slice(1).filter(r => r[0] !== date);
-
-    // Rewrite finance-summary
-    await sheets.spreadsheets.values.clear({ spreadsheetId: process.env.GOOGLE_SHEETS_ID as string, range: 'finance-summary' });
-    await sheets.spreadsheets.values.update({
-      spreadsheetId: process.env.GOOGLE_SHEETS_ID as string,
-      range: 'finance-summary!A1',
-      valueInputOption: 'USER_ENTERED',
-      requestBody: {
-        values: [summaryHeader, summaryRow, ...filteredSummaryRows]
-      }
-    });
-
-    console.log(`[API] finance-summary synced successfully for ${date}.`);
+    console.log(`[API] finance-expenses updated for ${date}.`);
 
     return NextResponse.json({ 
       success: true, 
-      netProfit: netProf, 
-      message: 'Daily expenses saved and summary updated successfully' 
+      message: 'Daily expenses saved successfully' 
     }, { status: 200 });
   } catch (error: any) {
     console.error('API Error in finance/expenses [POST]:', error);
