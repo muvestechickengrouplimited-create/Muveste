@@ -584,6 +584,15 @@ export default function FinanceDashboard() {
     loadSavedExpenses();
   }, [formDate, fetchTrackerData, loadSavedExpenses]);
 
+  // Re-calculate extras whenever batches load — fixes the timing issue where
+  // batches were [] when loadSavedExpenses first ran, so broiler rows got 0.
+  useEffect(() => {
+    if (batches.length > 0) {
+      recalculateExtras(bizRows);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [batches]);
+
 
   const updateFinanceExtra = (dept: string, val: number) => {
     setFinanceExtras(prev => ({ ...prev, [dept]: val }));
