@@ -140,9 +140,9 @@ export default function BroilerFarmDashboard() {
   // For summary cards, if "All" is selected, we show totals across all batches today
   // If a specific batch is selected, we show totals for that batch today
   const totalLiveBirds = todayRecords.reduce((s, r) => s + (r.liveBirds || 0), 0);
-  const totalBirdsSold = todayRecords.reduce((s, r) => s + (r.birdsSold || 0), 0);
-  const totalKgsSold   = todayRecords.reduce((s, r) => s + (r.kgsSold || 0), 0);
   const revenue        = todayRecords.reduce((s, r) => s + (r.revenue || 0), 0);
+  const expenses       = todayRecords.reduce((s, r) => s + (r.expenses || 0), 0);
+  const profit         = todayRecords.reduce((s, r) => s + (r.profit || 0), 0);
 
   // Recent submissions
   const recent = filteredRecords.slice(0, 20);
@@ -202,27 +202,27 @@ export default function BroilerFarmDashboard() {
       {/* ── Summary Cards ───────────────────────────────────────────────── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
-          title="Live birds"
+          title="Number of birds"
           value={totalLiveBirds.toLocaleString()}
           color="green"
           icon={<BirdIcon />}
         />
         <StatCard
-          title="Birds sold"
-          value={totalBirdsSold.toLocaleString()}
-          color="yellow"
-          icon={<BirdIcon />}
-        />
-        <StatCard
-          title="Kgs sold"
-          value={`${totalKgsSold.toLocaleString()} kg`}
-          color="orange"
-          icon={<BirdIcon />}
-        />
-        <StatCard
-          title="Revenue"
+          title="Revenues"
           value={formatRWF(revenue)}
           color="green"
+          icon={<RevenueIcon />}
+        />
+        <StatCard
+          title="Expenses"
+          value={formatRWF(expenses)}
+          color="orange"
+          icon={<ExpenseIcon />}
+        />
+        <StatCard
+          title="Profit"
+          value={formatRWF(profit)}
+          color={profit >= 0 ? 'green' : 'red'}
           icon={<RevenueIcon />}
         />
       </div>
@@ -304,8 +304,8 @@ export default function BroilerFarmDashboard() {
                     <TableRow>
                       <TableHead className="font-bold text-[10px] uppercase">Date</TableHead>
                       {selectedBatch === 'All' && <TableHead className="font-bold text-[10px] uppercase">Batch</TableHead>}
-                      <TableHead className="font-bold text-[10px] uppercase text-right">Birds</TableHead>
-                      <TableHead className="font-bold text-[10px] uppercase text-right">Live</TableHead>
+                      <TableHead className="font-bold text-[10px] uppercase text-right">Opening</TableHead>
+                      <TableHead className="font-bold text-[10px] uppercase text-right">Closing</TableHead>
                       <TableHead className="font-bold text-[10px] uppercase text-right">Revenue</TableHead>
                       <TableHead className="font-bold text-[10px] uppercase text-right">Profit</TableHead>
                     </TableRow>

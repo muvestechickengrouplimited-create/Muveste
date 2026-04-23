@@ -23,14 +23,24 @@ function parseNum(val: unknown): number {
 }
 
 // Map finance-expenses department labels → internal keys (case-insensitive lookup)
-const FINANCE_DEPT_MAP: Record<string, string> = {
-  'egg farm': 'eggFarm',
-  'broiler farm': 'broiler',
-  'kiosk batsinda': 'eggKiosk',
-  'kiosk nyabugogo': 'eggKiosk',
-  'butchery': 'butcher',
-  'butcher': 'butcher',
+// This must match the mapping in api/finance/route.ts
+const DEPT_KEY_MAP: Record<string, string> = {
+  'egg farm': 'ef', 'broiler farm': 'bf',
+  'kiosk batsinda': 'kBat', 'kiosk nyabugogo': 'kNya',
+  'butchery': 'bu', 'butcher': 'bu',
 };
+
+// Helper: get egg-farm values with correct indices based on format
+function getEfValues(r: string[]) {
+  const isBirdsSoldFmt = r.length >= 27;
+  const isDoubleStockFmt = r.length === 26 || r.length === 25;
+  const isProfitFmt = r.length === 24;
+  const isNewest = r.length === 23;
+  const isInter = r.length === 22;
+  const rev = parseNum(r[isBirdsSoldFmt ? 22 : (isDoubleStockFmt ? 20 : (isProfitFmt ? 19 : (isNewest ? 19 : (isInter ? 18 : 13))))]);
+  const exp = parseNum(r[isBirdsSoldFmt ? 21 : (isDoubleStockFmt ? 19 : (isProfitFmt ? 18 : (isNewest ? 18 : (isInter ? 17 : 12))))]);
+  return { rev, exp };
+}
 
 // Helper to handle mixed date formats (ISO vs human readable) reliably
 function normalizeDate(val: unknown): string {
@@ -62,12 +72,19 @@ export async function GET(request: Request) {
     const today = new Date().toISOString().split('T')[0];
     const targetMonth = today.substring(0, 7); // YYYY-MM
 
-    // 1. Fetch all department sheets + finance-expenses concurrently
-    const [efRows, bfRows, ekRows, buRows, finExpRows] = await Promise.all([
-      getRows('egg-farm'), getRows('broiler-farm'), getRows('egg-kiosk'), getRows('butcher'), getRows('finance-expenses'),
+    // Fetch all department sheets + finance-expenses + broiler batches
+    const [efRows, bfRows, ekRows, buRows, finExpRows, batchRows] = await Promise.all([
+      getRows('egg-farm'), getRows('broiler-farm'), getRows('egg-kiosk'), getRows('butcher'), getRows('finance-expenses'), getRows('broiler-batches')
     ]);
 
-    // ─── Filter rows by date ──────────────────────────────────────────
+    const allBatchNames: string[] = (batchRows || []).slice(1).map((r: string[]) => r[0]).filter(Boolean);
+    const dynamicDeptMap = { ...DEPT_KEY_MAP };
+    for (const name of allBatchNames) {
+      dynamicDeptMap[`broiler — ${name}`.toLowerCase()] = `batch_${name}`;
+      dynamicDeptMap[`broiler - ${name}`.toLowerCase()] = `batch_${name}`;
+    }
+
+    // Date filtering utility
     const filterByDate = (rows: any[], target: string, isMonthly: boolean) => {
       const data = rows.slice(1);
       return data.filter(r => {
@@ -80,134 +97,124 @@ export async function GET(request: Request) {
     const isMonthly = period === 'monthly';
     const target = isMonthly ? targetMonth : today;
 
+    // ─── AGGREGATION LOGIC (MATCHES FINANCE API) ──────────────────────────────────
+    
+    // 1. Process Finance Extras
     const finExpFiltered = filterByDate(finExpRows || [], target, isMonthly);
-    const efFiltered = filterByDate(efRows || [], target, isMonthly);
-    const bfFiltered = filterByDate(bfRows || [], target, isMonthly);
-    const ekFiltered = filterByDate(ekRows || [], target, isMonthly);
-    const buFiltered = filterByDate(buRows || [], target, isMonthly);
-
-    // ─── Process finance-expenses ──────────────────
-    const financeExtras: Record<string, number> = { eggFarm: 0, broiler: 0, eggKiosk: 0, eggKioskBatsinda: 0, eggKioskNyabugogo: 0, butcher: 0 };
+    const extrasPerDate: Record<string, Record<string, number>> = {};
     for (const r of finExpFiltered) {
+      const d = normalizeDate(r[0]);
+      if (!d) continue;
       const amount = parseNum(r[3]);
-      if (amount === 0) continue;
-      const depts = String(r[2] || '').toLowerCase().split(',').map(d => d.trim()).filter(Boolean);
-      const share = amount / (depts.length || 1);
-      for (const deptLabel of depts) {
-        let key = FINANCE_DEPT_MAP[deptLabel];
-        // Handle specific kiosk labels if present
-        if (deptLabel === 'kiosk batsinda') key = 'eggKioskBatsinda';
-        if (deptLabel === 'kiosk nyabugogo') key = 'eggKioskNyabugogo';
-        
-        if (key && financeExtras[key] !== undefined) financeExtras[key] += share;
+      const depts = String(r[2] || '').split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+      if (depts.length > 0 && amount !== 0) {
+        const share = amount / depts.length;
+        if (!extrasPerDate[d]) extrasPerDate[d] = {};
+        for (const deptLabel of depts) {
+          const key = dynamicDeptMap[deptLabel];
+          if (key) extrasPerDate[d][key] = (extrasPerDate[d][key] || 0) + share;
+        }
       }
     }
 
-    // ─── Process Departments ───────────────────────
-    let efRevenue = 0, efExpenses = 0;
-    for (const r of efFiltered) {
-      const isBirdsSoldFmt = r.length >= 27;
-      const isDoubleStockFmt = r.length === 26 || r.length === 25;
-      const isProfitFmt = r.length === 24;
-      const isNewest = r.length === 23;
-      const isInter = r.length === 22;
-      efRevenue += parseNum(r[isBirdsSoldFmt ? 22 : (isDoubleStockFmt ? 20 : (isProfitFmt ? 19 : (isNewest ? 19 : (isInter ? 18 : 13))))]);
-      efExpenses += parseNum(r[isBirdsSoldFmt ? 21 : (isDoubleStockFmt ? 19 : (isProfitFmt ? 18 : (isNewest ? 18 : (isInter ? 17 : 12))))]);
-    }
+    // 2. Build aggregator for daily data
+    const buildDailySummary = (dateStr: string) => {
+      const efDay = filterByDate(efRows || [], dateStr, false);
+      const bfDay = filterByDate(bfRows || [], dateStr, false);
+      const ekDay = filterByDate(ekRows || [], dateStr, false);
+      const buDay = filterByDate(buRows || [], dateStr, false);
+      const dayExtras = extrasPerDate[dateStr] || {};
 
-    let bfRevenue = 0, bfExpenses = 0;
-    for (const r of bfFiltered) {
-      bfRevenue += parseNum(r[14]);
-      bfExpenses += parseNum(r[13]);
-    }
+      let efRev = 0, efExp = 0;
+      for (const r of efDay) { const v = getEfValues(r); efRev += v.rev; efExp += v.exp; }
 
-    let batRevenue = 0, batExpenses = 0, nyaRevenue = 0, nyaExpenses = 0;
-    for (const r of ekFiltered) {
-      const loc = String(r[1] || '').toLowerCase();
-      if (loc.includes('batsinda')) {
-        batRevenue += parseNum(r[7]);
-        batExpenses += parseNum(r[6]);
-      } else if (loc.includes('nyabugogo')) {
-        nyaRevenue += parseNum(r[7]);
-        nyaExpenses += parseNum(r[6]);
+      let bfTotalRev = 0, bfTotalExp = 0;
+      const batchData: Record<string, { rev: number; exp: number }> = {};
+      const batchApiData: Record<string, { revenue: number; expenses: number }> = {};
+      for (const r of bfDay) {
+        const bname = r[1];
+        if (!batchData[bname]) batchData[bname] = { rev: 0, exp: 0 };
+        batchData[bname].rev += parseNum(r[15]); // Index 15 = Revenue
+        batchData[bname].exp += parseNum(r[14]); // Index 14 = Expenses
       }
+      for (const name of allBatchNames) {
+        const vals = batchData[name] || { rev: 0, exp: 0 };
+        const bExtra = dayExtras[`batch_${name}`] || 0;
+        bfTotalRev += vals.rev;
+        bfTotalExp += (vals.exp + bExtra);
+        // Store per-batch API data (includes finance extras)
+        batchApiData[`broiler_${name}`] = { revenue: vals.rev, expenses: vals.exp + bExtra };
+      }
+
+      let batRev = 0, batExp = 0, nyaRev = 0, nyaExp = 0;
+      for (const r of ekDay) {
+        const loc = String(r[1] || '').toLowerCase();
+        if (loc.includes('batsinda')) { batRev += parseNum(r[7]); batExp += parseNum(r[6]); }
+        else if (loc.includes('nyabugogo')) { nyaRev += parseNum(r[7]); nyaExp += parseNum(r[6]); }
+      }
+
+      let buRev = 0, buExp = 0;
+      for (const r of buDay) { buRev += parseNum(r[7]); buExp += parseNum(r[6]); }
+
+      // Add non-batch finance extras
+      efExp += (dayExtras.ef || 0);
+      batExp += (dayExtras.kBat || 0);
+      nyaExp += (dayExtras.kNya || 0);
+      buExp += (dayExtras.bu || 0);
+      bfTotalExp += (dayExtras.bf || 0); // Flat farm extras
+
+      return {
+        date: dateStr,
+        eggFarm: { active: !!efDay[0], revenue: efRev, expenses: efExp, profit: efRev - efExp, rawData: efDay[0] || [], allRows: efRows.slice(1).filter(r => normalizeDate(r[0]) === dateStr) },
+        broiler: { active: !!bfDay[0], revenue: bfTotalRev, expenses: bfTotalExp, profit: bfTotalRev - bfTotalExp, rawData: bfDay[0] || [], allRows: bfRows.slice(1).filter(r => normalizeDate(r[0]) === dateStr) },
+        eggKioskBatsinda: { active: !!ekDay.find(r => String(r[1] || '').includes('Batsinda')), revenue: batRev, expenses: batExp, profit: batRev - batExp, rawData: ekDay.find(r => String(r[1] || '').includes('Batsinda')) || [], allRows: ekRows.slice(1).filter(r => normalizeDate(r[0]) === dateStr && String(r[1] || '').includes('Batsinda')) },
+        eggKioskNyabugogo: { active: !!ekDay.find(r => String(r[1] || '').includes('Nyabugogo')), revenue: nyaRev, expenses: nyaExp, profit: nyaRev - nyaExp, rawData: ekDay.find(r => String(r[1] || '').includes('Nyabugogo')) || [], allRows: ekRows.slice(1).filter(r => normalizeDate(r[0]) === dateStr && String(r[1] || '').includes('Nyabugogo')) },
+        butcher: { active: !!buDay[0], revenue: buRev, expenses: buExp, profit: buRev - buExp, rawData: buDay[0] || [], allRows: buRows.slice(1).filter(r => normalizeDate(r[0]) === dateStr) },
+        totals: { revenue: efRev + bfTotalRev + batRev + nyaRev + buRev, expenses: efExp + bfTotalExp + batExp + nyaExp + buExp },
+        // Per-batch data with finance extras — keyed as broiler_BatchName
+        ...batchApiData,
+      };
+    };
+
+    if (isMonthly) {
+      // For monthly view, we iterate all unique dates in the target month
+      const allDates = new Set<string>();
+      [efRows, bfRows, ekRows, buRows].forEach(sheet => {
+        (sheet || []).slice(1).forEach(r => {
+          const d = normalizeDate(r[0]);
+          if (d && d.startsWith(targetMonth)) allDates.add(d);
+        });
+      });
+      const daySummaries = Array.from(allDates).map(buildDailySummary);
+      const totalRev = daySummaries.reduce((s, d) => s + d.totals.revenue, 0);
+      const totalExp = daySummaries.reduce((s, d) => s + d.totals.expenses, 0);
+      const activeCount = daySummaries.length; // Approximate active days
+
+      return NextResponse.json({
+        overview: { totalRevenue: totalRev, totalExpenses: totalExp, netProfit: totalRev - totalExp, activeDepts: activeCount },
+        records: daySummaries.sort((a, b) => b.date.localeCompare(a.date))
+      });
     }
 
-    let buRevenue = 0, buExpenses = 0;
-    for (const r of buFiltered) {
-      buRevenue += parseNum(r[7]);
-      buExpenses += parseNum(r[6]);
-    }
-
-    // ─── Add finance extras ─────────
-    efExpenses += financeExtras.eggFarm;
-    bfExpenses += financeExtras.broiler;
-    batExpenses += (financeExtras.eggKiosk / 2) + financeExtras.eggKioskBatsinda;
-    nyaExpenses += (financeExtras.eggKiosk / 2) + financeExtras.eggKioskNyabugogo;
-    buExpenses += financeExtras.butcher;
-
-    const efTodayRow = efFiltered.find(r => normalizeDate(r[0]) === today);
-    const bfTodayRow = bfFiltered.find(r => normalizeDate(r[0]) === today);
-    const batTodayRow = ekFiltered.find(r => normalizeDate(r[0]) === today && String(r[1] || '').includes('Batsinda'));
-    const nyaTodayRow = ekFiltered.find(r => normalizeDate(r[0]) === today && String(r[1] || '').includes('Nyabugogo'));
-    const buTodayRow = buFiltered.find(r => normalizeDate(r[0]) === today);
-
-    // ─── Build department objects ────────────────────────────────────
-    const eggFarm = {
-      revenue: efRevenue,
-      expenses: efExpenses,
-      profit: efRevenue - efExpenses,
-      active: !!efTodayRow,
-      rawData: efTodayRow || [],
-      allRows: efRows.slice(1) // Return all rows for frontend processing
-    };
-
-    const broiler = {
-      revenue: bfRevenue,
-      expenses: bfExpenses,
-      profit: bfRevenue - bfExpenses,
-      active: !!bfTodayRow,
-      rawData: bfTodayRow || [],
-      allRows: bfRows.slice(1)
-    };
-
-    const eggKioskBatsinda = {
-      revenue: batRevenue,
-      expenses: batExpenses,
-      profit: batRevenue - batExpenses,
-      active: !!batTodayRow,
-      rawData: batTodayRow || [],
-      allRows: ekRows.slice(1).filter(r => String(r[1] || '').includes('Batsinda'))
-    };
-
-    const eggKioskNyabugogo = {
-      revenue: nyaRevenue,
-      expenses: nyaExpenses,
-      profit: nyaRevenue - nyaExpenses,
-      active: !!nyaTodayRow,
-      rawData: nyaTodayRow || [],
-      allRows: ekRows.slice(1).filter(r => String(r[1] || '').includes('Nyabugogo'))
-    };
-
-    const butcher = {
-      revenue: buRevenue,
-      expenses: buExpenses,
-      profit: buRevenue - buExpenses,
-      active: !!buTodayRow,
-      rawData: buTodayRow || [],
-      allRows: buRows.slice(1)
-    };
-
-    // ─── Totals ─────────────────────────────────────────────────────
-    const totalRevenue = efRevenue + bfRevenue + batRevenue + nyaRevenue + buRevenue;
-    const totalExpenses = efExpenses + bfExpenses + batExpenses + nyaExpenses + buExpenses;
-    const netProfit = totalRevenue - totalExpenses;
-
-    const activeDepts = [eggFarm.active, broiler.active, eggKioskBatsinda.active, eggKioskNyabugogo.active, butcher.active].filter(Boolean).length;
+    // Default: Daily summary for 'today'
+    const summary = buildDailySummary(today);
+    const activeDepts = [summary.eggFarm.active, summary.broiler.active, summary.eggKioskBatsinda.active, summary.eggKioskNyabugogo.active, summary.butcher.active].filter(Boolean).length;
 
     return NextResponse.json({
-      overview: { totalRevenue, totalExpenses, netProfit, activeDepts },
-      departments: { eggFarm, broiler, eggKioskBatsinda, eggKioskNyabugogo, butcher, eggKiosk: { revenue: batRevenue + nyaRevenue, expenses: batExpenses + nyaExpenses } }
+      overview: { 
+        totalRevenue: summary.totals.revenue, 
+        totalExpenses: summary.totals.expenses, 
+        netProfit: summary.totals.revenue - summary.totals.expenses, 
+        activeDepts 
+      },
+      departments: { 
+        eggFarm: summary.eggFarm, 
+        broiler: summary.broiler, 
+        eggKioskBatsinda: summary.eggKioskBatsinda, 
+        eggKioskNyabugogo: summary.eggKioskNyabugogo, 
+        butcher: summary.butcher,
+        eggKiosk: { revenue: summary.eggKioskBatsinda.revenue + summary.eggKioskNyabugogo.revenue, expenses: summary.eggKioskBatsinda.expenses + summary.eggKioskNyabugogo.expenses }
+      }
     });
   } catch (error) {
     console.error('API Admin Overview Error:', error);

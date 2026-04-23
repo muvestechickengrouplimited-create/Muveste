@@ -291,24 +291,15 @@ export default function AdminOverview() {
         setTotalExpenses(ov.totalExpenses);
         setNetProfit(ov.netProfit);
 
+        // Use kioskRows only for display metrics (trays etc) — NOT for financials.
+        // Financials come from the API (dpts) which already include finance extras.
         const batToday = kioskRows.filter((r) => r[0] === todayISO && r[1]?.includes('Batsinda'));
         const nyaToday = kioskRows.filter((r) => r[0] === todayISO && r[1]?.includes('Nyabugogo'));
 
-        const batRev = batToday.reduce((sum, kr) => sum + parseNum(kr[7]), 0);
-        const batExp = batToday.reduce((sum, kr) => sum + parseNum(kr[6]), 0);
-        const batProf = batToday.reduce((sum, kr) => sum + parseNum(kr[9]), 0);
         const batEggs = batToday.reduce((sum, kr) => sum + parseNum(kr[3]), 0);
-
-        const nyaRev = nyaToday.reduce((sum, kr) => sum + parseNum(kr[7]), 0);
-        const nyaExp = nyaToday.reduce((sum, kr) => sum + parseNum(kr[6]), 0);
-        const nyaProf = nyaToday.reduce((sum, kr) => sum + parseNum(kr[9]), 0);
         const nyaEggs = nyaToday.reduce((sum, kr) => sum + parseNum(kr[3]), 0);
 
         // Egg Farm rawData indices (newest 27-col format):
-        // 0:Date 1:FeedQty 2:FeedPrice 3:Water 4:Meds 5:NewBirds 6:BirdsSold 7:PriceOfBirdsSold
-        // 8:Mortality 9:LiveBirds 10:FreshEggs 11:PricePerFreshEgg 12:CheckedEggs 13:PricePerCheckedEgg
-        // 14:BrokenEggs 15:TotalEggs 16:FreshEggsSold 17:CheckedEggsSold 18:FreshLeftInStock 19:CheckedLeftInStock
-        // 20:AvgWeight 21:Expenses 22:Revenue 23:Profit 24:Notes 25:SubmittedBy 26:Timestamp
         const efData = dpts['eggFarm']?.rawData || [];
         const isEfBirdsSold = efData.length >= 27;
         const isEfNew = efData.length >= 20;
@@ -321,10 +312,10 @@ export default function AdminOverview() {
 
         const bfData = dpts['broiler']?.rawData || [];
         const bfMetrics = [
-          { label: 'Live birds', value: parseNum(bfData[8]).toLocaleString() },
-          { label: 'Mortality', value: parseNum(bfData[6]).toLocaleString() },
-          { label: 'Birds sold', value: parseNum(bfData[7]).toLocaleString() },
-          { label: 'Kgs sold', value: parseNum(bfData[10]).toLocaleString() }
+          { label: 'Live birds', value: parseNum(bfData[9]).toLocaleString() },
+          { label: 'Mortality', value: parseNum(bfData[7]).toLocaleString() },
+          { label: 'Birds sold', value: parseNum(bfData[8]).toLocaleString() },
+          { label: 'Kgs sold', value: parseNum(bfData[11]).toLocaleString() }
         ];
         
         const batMetrics = [
@@ -348,10 +339,12 @@ export default function AdminOverview() {
           { label: 'Damaged', value: `${parseNum(buData[4]).toLocaleString()} kg` }
         ];
 
+        // Merge display metrics into API dept data (API already has correct revenue/expenses/profit incl. finance extras)
         dpts['eggFarm'] = { ...dpts['eggFarm'], metrics: efMetrics };
         dpts['broiler'] = { ...dpts['broiler'], metrics: bfMetrics };
-        dpts['eggKioskBatsinda'] = { metrics: batMetrics, revenue: batRev, expenses: batExp, profit: batProf, active: batToday.length > 0 };
-        dpts['eggKioskNyabugogo'] = { metrics: nyaMetrics, revenue: nyaRev, expenses: nyaExp, profit: nyaProf, active: nyaToday.length > 0 };
+        // Use API values for kiosk financials (includes finance extras), only replace metrics
+        dpts['eggKioskBatsinda'] = { ...dpts['eggKioskBatsinda'], metrics: batMetrics };
+        dpts['eggKioskNyabugogo'] = { ...dpts['eggKioskNyabugogo'], metrics: nyaMetrics };
         dpts['butcher'] = { ...dpts['butcher'], metrics: buMetrics };
 
         // Build department summaries — use API's `active` flag (based on actual data rows)
@@ -384,13 +377,18 @@ export default function AdminOverview() {
 
         const calculatedActiveCount = summaries.filter(s => s.hasSubmittedToday).length;
         
-        // Split dynamic broiler batches
+        // Split dynamic broiler batches — use API batchData which includes finance extras
         const broilerRecords: string[][] = dpts['broiler']?.allRows || [];
         const broilerSummaries: DeptSummary[] = batchesData.map((b: string[]) => {
           const batchName = b[0];
           const batchRows = broilerRecords.filter(r => r[1] === batchName);
           const batchTodayMatch = batchRows.find(r => r[0] === todayISO);
           
+          // Use API-calculated batch financials from batchData (includes finance extras)
+          // Key format: broiler_BatchName
+          const batchApiKey = `broiler_${batchName}`;
+          const batchApiData = dpts[batchApiKey] || null;
+
           return {
             name: `Broiler — ${batchName}`,
             color: '#E07B00',
@@ -400,9 +398,10 @@ export default function AdminOverview() {
               { label: 'Birds sold', value: parseNum(batchTodayMatch?.[8]).toLocaleString() },
               { label: 'Kgs sold', value: parseNum(batchTodayMatch?.[11]).toLocaleString() }
             ],
-            revenue: parseNum(batchTodayMatch?.[15]),
-            expenses: parseNum(batchTodayMatch?.[14]),
-            profit: parseNum(batchTodayMatch?.[16]),
+            // Prefer API-calculated values (include finance extras); fall back to raw row
+            revenue: batchApiData?.revenue ?? parseNum(batchTodayMatch?.[15]),
+            expenses: batchApiData?.expenses ?? parseNum(batchTodayMatch?.[14]),
+            profit: batchApiData ? (batchApiData.revenue - batchApiData.expenses) : parseNum(batchTodayMatch?.[16]),
             hasSubmittedToday: !!batchTodayMatch
           };
         });
@@ -472,149 +471,89 @@ export default function AdminOverview() {
 
     try {
       const token = await auth.currentUser?.getIdToken();
+
       if (deptName.startsWith('Egg Kiosk')) {
-        const res = await fetch(`/api/admin/department?dept=egg-kiosk`, { headers: { Authorization: `Bearer ${token}` } });
+        // Use structured ?date= mode — only fetches the matched row, fast
+        const filterLoc = deptName.includes('Batsinda') ? 'Batsinda' : 'Nyabugogo';
+        const res = await fetch(
+          `/api/admin/department?dept=egg-kiosk&date=${today}&location=${encodeURIComponent(filterLoc)}`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
         if (res.ok) {
           const d = await res.json();
-          const rows = d.data || [];
-          const filterLoc = deptName.includes('Batsinda') ? 'Batsinda' : 'Nyabugogo';
-          const match = rows.find((r: string[]) => r[0] === today && r[1]?.includes(filterLoc));
-
-          if (match) {
-            setDeptDetails({
-              department: deptName, date: today,
-              fields: [
-                { label: 'Location',       value: match[1] },
-                { label: 'Trays Received', value: Number(match[2] || 0).toLocaleString() },
-                { label: 'Trays Sold',     value: Number(match[3] || 0).toLocaleString() },
-                { label: 'Price/Tray',     value: formatRWF(parseFloat(match[4])) },
-                { label: 'Damaged Trays',  value: Number(match[5] || 0).toLocaleString() },
-                { label: 'Trays Left',     value: Number(match[8] || 0).toLocaleString() },
-              ],
-              medications: null,
-              revenue: parseFloat(match[7]) || 0, 
-              expenses: parseFloat(match[6]) || 0, 
-              profit: parseFloat(match[9]) || 0,
-              notes: match[10] || null
-            });
+          if (d.noReport) {
+            setDeptDetails({ department: deptName, date: today, fields: [], medications: null, revenue: 0, expenses: 0, profit: 0, notes: null, noReport: true });
           } else {
-            setDeptDetails({
-              department: deptName, date: today, fields: [], medications: null,
-              revenue: 0, expenses: 0, profit: 0, notes: null, noReport: true
-            });
+            setDeptDetails({ ...d, department: deptName });
           }
         }
+
       } else if (deptName.startsWith('Broiler — ')) {
+        // Use the broiler API's ?batch=&date= endpoint — returns only that row
         const batchName = deptName.replace('Broiler — ', '');
-        const res = await fetch(`/api/admin/department?dept=broiler-farm`, { headers: { Authorization: `Bearer ${token}` } });
+        const res = await fetch(
+          `/api/broiler-farm?batch=${encodeURIComponent(batchName)}&date=${today}`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
         if (res.ok) {
           const d = await res.json();
-          const rows = d.data || [];
-          const match = rows.find((r: string[]) => r[0] === today && r[1] === batchName);
-
-          if (!match) {
-            setDeptDetails({
-              department: deptName, date: today, fields: [], medications: null,
-              revenue: 0, expenses: 0, profit: 0, notes: null, noReport: true
-            });
+          if (!d.success || !d.data) {
+            setDeptDetails({ department: deptName, date: today, fields: [], medications: null, revenue: 0, expenses: 0, profit: 0, notes: null, noReport: true });
           } else {
+            const r = d.data;
             setDeptDetails({
               department: deptName, date: today,
               fields: [
-                { label: 'Batch',         value: match[1] },
-                { label: 'Number of Birds', value: match[6] || '0' },
-                { label: 'Mortality',      value: match[7] || '0' },
-                { label: 'Birds Sold',     value: match[8] || '0' },
-                { label: 'Live Birds',     value: match[9] || '0' },
-                { label: 'Avg Weight',     value: `${match[10] || '0'} kg` },
-                { label: 'Kgs Sold',       value: `${match[11] || '0'} kg` },
-                { label: 'Total Weight',   value: `${match[12] || '0'} kg` },
-                { label: 'Feed Qty',       value: `${match[2] || '0'} kg` },
-                { label: 'Water',          value: `${match[4] || '0'} L` },
-                { label: 'Medications',    value: match[5] || 'None' },
+                { label: 'Batch',           value: r.batch },
+                { label: 'Number of Birds', value: String(r.numberOfBirds || '0') },
+                { label: 'Mortality',       value: String(r.mortality || '0') },
+                { label: 'Birds Sold',      value: String(r.birdsSold || '0') },
+                { label: 'Live Birds',      value: String(r.liveBirds || '0') },
+                { label: 'Avg Weight',      value: `${r.avgWeight || '0'} kg` },
+                { label: 'Kgs Sold',        value: `${r.kgsSold || '0'} kg` },
+                { label: 'Total Weight',    value: `${r.totalWeight || '0'} kg` },
+                { label: 'Feed Qty',        value: `${r.feedQty || '0'} kg` },
+                { label: 'Water',           value: `${r.water || '0'} L` },
+                { label: 'Medications',     value: r.medications || 'None' },
               ],
-              medications: match[5] || null,
-              revenue: parseFloat(match[15]) || 0,
-              expenses: parseFloat(match[14]) || 0,
-              profit: parseFloat(match[16]) || 0,
-              notes: match[17] || null
+              medications: r.medications || null,
+              revenue: parseNum(r.revenue),
+              expenses: parseNum(r.expenses),
+              profit: parseNum(r.profit),
+              notes: r.notes || null
             });
           }
+        } else {
+          setDeptDetails({ department: deptName, date: today, fields: [], medications: null, revenue: 0, expenses: 0, profit: 0, notes: null, noReport: true });
         }
+
       } else if (deptName === 'Egg Farm') {
-        const res = await fetch(`/api/admin/department?dept=egg-farm`, { headers: { Authorization: `Bearer ${token}` } });
+        // Use structured ?date= mode for egg farm too
+        const res = await fetch(
+          `/api/admin/department?dept=egg-farm&date=${today}`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
         if (res.ok) {
           const d = await res.json();
-          const rows = d.data || [];
-          const match = rows.find((r: string[]) => r[0] === today);
-
-          if (!match) {
-            setDeptDetails({
-              department: deptName, date: today, fields: [], medications: null,
-              revenue: 0, expenses: 0, profit: 0, notes: null, noReport: true
-            });
+          if (d.noReport) {
+            setDeptDetails({ department: deptName, date: today, fields: [], medications: null, revenue: 0, expenses: 0, profit: 0, notes: null, noReport: true });
           } else {
-            const row = match;
-            const isProfitFmt = row.length >= 24;
-            const isNewest = row.length === 23;
-            const isInter = row.length === 22;
-            const isNew = isProfitFmt || isNewest || isInter;
-            
-            const revenue = parseFloat(row[isProfitFmt ? 19 : (isNewest ? 19 : (isInter ? 18 : 13))]) || 0;
-            const expenses = parseFloat(row[isProfitFmt ? 18 : (isNewest ? 18 : (isInter ? 17 : 12))]) || 0;
-            const profit = isProfitFmt ? (parseFloat(row[20]) || 0) : (revenue - expenses);
-
-            setDeptDetails({
-              department: deptName,
-              date: today,
-              fields: [
-                { label: 'Fresh Eggs',     value: row[isNew ? 8 : 5] },
-                { label: 'Checked Eggs',   value: row[isNew ? 10 : 7] },
-                { label: 'Broken Eggs',    value: row[isNew ? 12 : 9] },
-                { label: 'Total Eggs',     value: row[isNew ? 13 : 10] },
-                { label: 'Avg Weight',     value: `${row[isProfitFmt || isNewest ? 17 : (isInter ? 16 : 11)]} kg` },
-                { label: 'Feed Qty',       value: `${row[1]} kg` },
-                { label: 'Feed Price',     value: formatRWF(parseFloat(row[2])) },
-                { label: 'Water',          value: `${row[3]} L` },
-                { label: 'Medications',    value: row[4] },
-              ],
-              medications: row[4] || null,
-              revenue: revenue,
-              expenses: expenses,
-              profit: profit,
-              notes: row[isProfitFmt ? 21 : (isNewest ? 20 : (isInter ? 19 : 14))] || null
-            });
+            setDeptDetails({ ...d, department: deptName });
           }
         }
+
       } else {
+        // Butcher and any other dept — use structured ?date= mode
         const res = await fetch(
           `/api/admin/department?dept=${encodeURIComponent(deptName)}&date=${today}`,
           { headers: { Authorization: `Bearer ${token}` } }
         );
         if (res.ok) {
-          const json = await res.json();
-          const row = json.data?.find((r: string[]) => r[0] === today);
-          if (row) {
-            setDeptDetails({
-              department: deptName,
-              date: today,
-              fields: [
-                { label: 'Meat Received', value: `${row[1]} kg`  },
-                { label: 'Meat Sold',     value: `${row[2]} kg`  },
-                { label: 'Price/kg',      value: formatRWF(parseFloat(row[3])) },
-                { label: 'Damaged',       value: `${row[4]} kg`  },
-              ],
-              medications: null,
-              revenue: parseFloat(row[6]) || 0,
-              expenses: parseFloat(row[5]) || 0,
-              profit: parseFloat(row[7]) || 0,
-              notes: row[8] || null
-            });
+          const d = await res.json();
+          if (d.noReport) {
+            setDeptDetails({ department: deptName, date: today, fields: [], medications: null, revenue: 0, expenses: 0, profit: 0, notes: null, noReport: true });
           } else {
-            setDeptDetails({
-              department: deptName, date: today, fields: [], medications: null,
-              revenue: 0, expenses: 0, profit: 0, notes: null, noReport: true
-            });
+            setDeptDetails({ ...d, department: deptName });
           }
         }
       }

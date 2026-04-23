@@ -36,15 +36,22 @@ const SHEET_COLS: Record<string, { rev: number; exp: number }> = {
   'butcher': { rev: 7, exp: 6 },
 };
 
-// Helper to handle mixed date formats
+// Helper to handle mixed date formats (ISO vs human readable) reliably
 function normalizeDate(val: unknown): string {
   if (!val) return '';
   const s = String(val).trim();
   if (!s) return '';
+  // If already ISO YYYY-MM-DD, just return it
   if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.substring(0, 10);
+  
   const d = new Date(s);
-  if (!isNaN(d.getTime())) return d.toISOString().split('T')[0];
-  return s;
+  if (isNaN(d.getTime())) return s;
+  
+  // Return YYYY-MM-DD in local-safe way
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 }
 
 async function getDepartmentTotals(sheetName: string, targetDate: string) {

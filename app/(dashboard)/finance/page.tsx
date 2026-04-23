@@ -597,14 +597,27 @@ export default function FinanceDashboard() {
     for (const dept of departmentList) newExtras[dept] = 0;
 
     rows.forEach(row => {
-      const selectedDepts = Array.isArray(row.department) 
-        ? row.department 
-        : (row.department === 'All Departments' ? departmentList : (row.department ? [row.department] : []));
+      // Normalize department selection
+      let selectedDepts: string[] = [];
+      if (Array.isArray(row.department)) {
+        selectedDepts = row.department;
+      } else if (row.department === 'All Departments') {
+        selectedDepts = departmentList;
+      } else if (row.department) {
+        selectedDepts = [row.department];
+      }
       
       if (selectedDepts.length > 0 && row.amount) {
         const share = row.amount / selectedDepts.length;
         selectedDepts.forEach((dept: string) => {
-          if (dept in newExtras) {
+          // Normalize names for matching: ignore dash types and trimming
+          const normalizedDept = dept.trim().replace(/[—–-]/g, '-');
+          const match = departmentList.find(d => d.trim().replace(/[—–-]/g, '-') === normalizedDept);
+          
+          if (match) {
+            newExtras[match] += share;
+          } else if (dept in newExtras) {
+            // Exact match fallback
             newExtras[dept] += share;
           }
         });
@@ -1007,10 +1020,10 @@ export default function FinanceDashboard() {
                       {formatRWF(departmentList.reduce((s, d) => s + (trackerData[d]?.value || 0), 0))}
                     </td>
                     <td className="text-right font-bold text-[#E07B00] font-mono text-sm px-2">
-                      {formatRWF(departmentList.reduce((s, d) => s + (financeExtras[d] || 0), 0))}
+                      {formatRWF(totalBizExpenses)}
                     </td>
                     <td className="text-right font-bold text-[#1B6B3A] font-mono text-sm px-2 rounded-r-xl">
-                      {formatRWF(departmentList.reduce((s, d) => s + (trackerData[d]?.value || 0) + (financeExtras[d] || 0), 0))}
+                      {formatRWF(totalDeptExpenses + totalBizExpenses)}
                     </td>
                   </tr>
                 </tbody>

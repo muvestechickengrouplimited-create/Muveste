@@ -462,7 +462,7 @@ export function BroilerFarmForm({ onSubmitSuccess }: { onSubmitSuccess?: () => v
             {/* Number of Birds */}
             <div className="w-full space-y-1.5">
               <label htmlFor="bf-numberOfBirds" className="block text-xs font-bold text-gray-400 uppercase tracking-wider">
-                Number of Birds
+                Live Birds Remaining (Opening)
               </label>
               <input
                 id="bf-numberOfBirds"
@@ -529,7 +529,7 @@ export function BroilerFarmForm({ onSubmitSuccess }: { onSubmitSuccess?: () => v
             <div className="w-full">
               <div className="bg-[#EAF5EE] border border-[#1B6B3A]/20 rounded-xl p-4 h-[72px] flex flex-col justify-center">
                 <p className="text-[10px] text-[#1B6B3A] font-bold uppercase tracking-wider">
-                  Live Birds Remaining
+                  Live Birds Remaining (Closing)
                 </p>
                 <div className="flex items-baseline gap-2">
                   <p className="text-2xl font-bold font-mono text-[#1B6B3A]">

@@ -33,6 +33,7 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const dept = searchParams.get('dept');
     const date = searchParams.get('date'); // optional — if provided, return structured detail
+    const location = searchParams.get('location'); // optional — for egg-kiosk: 'Batsinda' | 'Nyabugogo'
 
     if (!dept) return NextResponse.json({ success: false, error: 'Missing department string' }, { status: 400 });
 
@@ -63,8 +64,14 @@ export async function GET(request: Request) {
       const headers = rows[0].map(String);
       const dataRows = rows.slice(1);
 
-      // Find today's row (match by date string prefix)
-      const todayRow = dataRows.find(r => r[0] && r[0].startsWith(date));
+      // Find today's row (match by date string prefix, applying location filter for egg-kiosk)
+      const todayRow = dataRows.find(r => {
+        if (!r[0]?.startsWith(date)) return false;
+        if (location && sheetName === 'egg-kiosk') {
+          return String(r[1] || '').includes(location);
+        }
+        return true;
+      });
 
       if (!todayRow) {
         return NextResponse.json({
