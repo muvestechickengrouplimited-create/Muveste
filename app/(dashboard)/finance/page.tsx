@@ -337,8 +337,19 @@ export default function FinanceDashboard() {
     const efR = Number(fields.eggFarmRevenue) || 0;
     const efE = (trackerData['Egg Farm']?.value || 0) + (financeExtras['Egg Farm'] || 0);
 
-    const bfR = Number(fields.broilerRevenue) || 0;
-    const bfE = (trackerData['Broiler Farm']?.value || 0) + (financeExtras['Broiler Farm'] || 0);
+    // Sum up all broiler batches
+    // Sum up all broiler batches revenue and expenses
+    const broilerBatchDepts = departmentList.filter(d => d.startsWith('Broiler —'));
+    
+    const bfR = broilerBatchDepts.reduce((sum, dept) => {
+      const bname = dept.replace('Broiler — ', '');
+      const revVal = Number(fields[`broiler_${bname}_revenue` as keyof typeof fields]) || 0;
+      return sum + revVal;
+    }, 0);
+
+    const bfE = broilerBatchDepts.reduce((sum, dept) => {
+      return sum + (trackerData[dept]?.value || 0) + (financeExtras[dept] || 0);
+    }, 0);
 
     const batR = Number(fields.kioskBatsindaRevenue) || 0;
     const batE = (trackerData['Kiosk Batsinda']?.value || 0) + (financeExtras['Kiosk Batsinda'] || 0);
@@ -490,8 +501,7 @@ export default function FinanceDashboard() {
         if (json.batches) setBatches(json.batches);
 
         // Populate manual entry fields
-        setFields(prev => ({
-          ...prev,
+        const newFields: Record<string, string> = {
           eggFarmRevenue: data.eggFarmRevenue?.toString() || '0',
           eggFarmExpenses: data.eggFarmExpenses?.toString() || '0',
           broilerRevenue: data.broilerRevenue?.toString() || '0',
@@ -502,7 +512,18 @@ export default function FinanceDashboard() {
           kioskNyabugogoExpenses: data.kioskNyabugogoExpenses?.toString() || '0',
           butcherRevenue: data.butcherRevenue?.toString() || '0',
           butcherExpenses: data.butcherExpenses?.toString() || '0',
-        }));
+        };
+
+        // Populate per-batch revenue fields from API batch data
+        const batchList: string[] = json.batches || [];
+        for (const bname of batchList) {
+          const batchInfo = data[`broiler_${bname}`];
+          if (batchInfo) {
+            newFields[`broiler_${bname}_revenue`] = batchInfo.revenue?.toString() || '0';
+          }
+        }
+
+        setFields(prev => ({ ...prev, ...newFields }));
 
         if (tracker) setTrackerData(tracker);
 
@@ -1384,7 +1405,7 @@ export default function FinanceDashboard() {
                 {batches.map(bname => {
                   const batchKey = `Broiler — ${bname}`;
                   const batchRev = Number(fields[`broiler_${bname}_revenue` as keyof typeof fields]) || 0;
-                  const batchExp = trackerData[batchKey]?.value || 0;
+                  const batchExp = (trackerData[batchKey]?.value || 0) + (financeExtras[batchKey] || 0);
                   const batchProfit = batchRev - batchExp;
                   return (
                     <div key={bname} className="space-y-4 p-4 rounded-xl border border-[#E07B00]/30 bg-orange-50/30">
