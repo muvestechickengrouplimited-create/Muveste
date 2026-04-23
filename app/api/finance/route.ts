@@ -156,6 +156,8 @@ export async function GET(request: Request) {
       }
 
       // Build tracker (one entry per batch + other depts)
+      // NOTE: tracker values contain ONLY base dept expenses (no finance extras)
+      // so the frontend can display and sum them separately without double-counting.
       const tracker: Record<string, { value: number; submitted: boolean }> = {
         'Egg Farm': { value: efExp, submitted: efDayRows.length > 0 },
         'Kiosk Batsinda': { value: batRow ? parseNum(batRow[6]) : 0, submitted: !!batRow },
@@ -171,8 +173,9 @@ export async function GET(request: Request) {
         bfTotalRev += vals.rev;
         bfTotalExp += vals.exp + bExtra;
         batchData[`broiler_${bname}`] = { revenue: vals.rev, expenses: vals.exp + bExtra };
+        // Store ONLY base batch expense in tracker (finance extras handled by frontend financeExtras state)
         tracker[`Broiler — ${bname}`] = {
-          value: vals.exp + bExtra,
+          value: vals.exp,
           submitted: bfDayRows.some(r => r[1] === bname),
         };
       }

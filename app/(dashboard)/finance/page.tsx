@@ -299,7 +299,9 @@ export default function FinanceDashboard() {
   const [grandTotalExpenses, setGrandTotalExpenses] = useState(0);
 
   useEffect(() => {
-    // Correct formula: Dept Expenses (base) + All Business Expenses
+    // Grand total = base dept expenses + business expenses only.
+    // NOTE: totalFinanceExtra is NOT added separately because the "Finance extra" column
+    // in the tracker table IS the business expenses, just split per department — same money.
     setGrandTotalExpenses(totalDeptExpenses + totalBizExpenses);
   }, [totalDeptExpenses, totalBizExpenses]);
 
@@ -1069,7 +1071,7 @@ export default function FinanceDashboard() {
               <div className="bg-[#EAF5EE] rounded-2xl p-4">
                 <p className="text-xs text-gray-400 mb-1">Dept expenses</p>
                 <p className="text-lg font-bold text-[#1B6B3A] font-mono">
-                  {formatRWF(totalDeptExpenses + totalFinanceExtra)}
+                  {formatRWF(totalDeptExpenses)}
                 </p>
               </div>
               <div className="bg-[#FFF3E0] rounded-2xl p-4">
