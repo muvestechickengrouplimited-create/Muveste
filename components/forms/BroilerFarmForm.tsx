@@ -297,9 +297,9 @@ export function BroilerFarmForm({ onSubmitSuccess }: { onSubmitSuccess?: () => v
       if (!res.ok) throw new Error(result.error || 'Failed to submit report');
 
       if (result.updated) {
-        toast('✅ Broiler Farm daily report updated successfully!', 'success');
+        toast('✅ Report updated successfully!', 'success');
       } else {
-        toast('✅ Broiler Farm daily report submitted successfully!', 'success');
+        toast('✅ Report submitted successfully!', 'success');
       }
       localStorage.setItem(MEMORY_KEY, JSON.stringify(fields));
 

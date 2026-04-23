@@ -137,11 +137,11 @@ export default function BroilerFarmDashboard() {
   // ── Derive today's totals ────────────────────────────────────────────────
   const todayRecords  = filteredRecords.filter((r) => r.date === todayStr);
   
-  // For summary cards, if "All" is selected, we show totals across all batches today
-  const totalOpening   = todayRecords.reduce((s, r) => s + (r.numberOfBirds || 0), 0);
-  const totalMortality = todayRecords.reduce((s, r) => s + (r.mortality || 0), 0);
-  const totalSold      = todayRecords.reduce((s, r) => s + (r.birdsSold || 0), 0);
-  const totalClosing   = todayRecords.reduce((s, r) => s + (r.liveBirds || 0), 0);
+  // Summary card metrics (today, filtered by batch)
+  const totalLiveBirds = todayRecords.reduce((s, r) => s + (r.liveBirds  || 0), 0);
+  const revenue        = todayRecords.reduce((s, r) => s + (r.revenue    || 0), 0);
+  const expenses       = todayRecords.reduce((s, r) => s + (r.expenses   || 0), 0);
+  const profit         = revenue - expenses;
 
   // Recent submissions
   const recent = filteredRecords.slice(0, 20);
@@ -201,28 +201,28 @@ export default function BroilerFarmDashboard() {
       {/* ── Summary Cards ───────────────────────────────────────────────── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
-          title="Total Opening"
-          value={totalOpening.toLocaleString()}
+          title="Number of Birds"
+          value={totalLiveBirds.toLocaleString()}
           color="green"
           icon={<BirdIcon />}
         />
         <StatCard
-          title="Mortality"
-          value={totalMortality.toLocaleString()}
-          color="red"
-          icon={<MortalityIcon />}
+          title="Revenues"
+          value={formatRWF(revenue)}
+          color="green"
+          icon={<RevenueIcon />}
         />
         <StatCard
-          title="Birds Sold"
-          value={totalSold.toLocaleString()}
+          title="Expenses"
+          value={formatRWF(expenses)}
           color="orange"
-          icon={<BirdIcon />}
+          icon={<ExpenseIcon />}
         />
         <StatCard
-          title="Current Stock"
-          value={totalClosing.toLocaleString()}
-          color="green"
-          icon={<BirdIcon />}
+          title="Profit"
+          value={formatRWF(profit)}
+          color={profit >= 0 ? 'green' : 'red'}
+          icon={<RevenueIcon />}
         />
       </div>
 
