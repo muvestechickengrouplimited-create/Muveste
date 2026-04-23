@@ -200,6 +200,12 @@ export async function GET(request: Request) {
     const summary = buildDailySummary(today);
     const activeDepts = [summary.eggFarm.active, summary.broiler.active, summary.eggKioskBatsinda.active, summary.eggKioskNyabugogo.active, summary.butcher.active].filter(Boolean).length;
 
+    const batchApiKeys = Object.keys(summary).filter(k => k.startsWith('broiler_'));
+    const batchApiDataObj: Record<string, any> = {};
+    for (const k of batchApiKeys) {
+      batchApiDataObj[k] = (summary as any)[k];
+    }
+
     return NextResponse.json({
       overview: { 
         totalRevenue: summary.totals.revenue, 
@@ -213,7 +219,8 @@ export async function GET(request: Request) {
         eggKioskBatsinda: summary.eggKioskBatsinda, 
         eggKioskNyabugogo: summary.eggKioskNyabugogo, 
         butcher: summary.butcher,
-        eggKiosk: { revenue: summary.eggKioskBatsinda.revenue + summary.eggKioskNyabugogo.revenue, expenses: summary.eggKioskBatsinda.expenses + summary.eggKioskNyabugogo.expenses }
+        eggKiosk: { revenue: summary.eggKioskBatsinda.revenue + summary.eggKioskNyabugogo.revenue, expenses: summary.eggKioskBatsinda.expenses + summary.eggKioskNyabugogo.expenses },
+        ...batchApiDataObj
       }
     });
   } catch (error) {
