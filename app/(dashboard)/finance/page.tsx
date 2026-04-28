@@ -482,7 +482,7 @@ export default function FinanceDashboard() {
     fetchTableData();
   }, [fetchTableData]);
 
-  const autoPullData = async (dateParam: string, manual = false) => {
+  const autoPullData = useCallback(async (dateParam: string, manual = false) => {
     try {
       if (manual) setLoadingTracker(true);
       else setLoadingAutoPull(true);
@@ -497,8 +497,14 @@ export default function FinanceDashboard() {
         const json = await res.json();
         const { data, tracker } = json;
 
-        // Capture batch list
-        if (json.batches) setBatches(json.batches);
+        // Capture batch list — only update if changed to avoid loop
+        if (json.batches) {
+          const newB = json.batches;
+          setBatches(current => {
+            if (JSON.stringify(current) === JSON.stringify(newB)) return current;
+            return newB;
+          });
+        }
 
         // Populate manual entry fields
         const newFields: Record<string, string> = {
@@ -528,16 +534,16 @@ export default function FinanceDashboard() {
         if (tracker) setTrackerData(tracker);
 
         if (manual) toast(`✅ Data updated for ${dateParam}`, 'success');
-        else toast(`Auto-pulled data for ${dateParam}`, 'success');
+        // Removed background toast to reduce noise
       }
     } catch (err) {
       console.error('Auto pull failed:', err);
-      toast('Failed to pull auto data.', 'error');
+      if (manual) toast('Failed to pull auto data.', 'error');
     } finally {
       setLoadingAutoPull(false);
       setLoadingTracker(false);
     }
-  };
+  }, []);
 
   // Pull data automatically when component mounts (defaulting to today)
   useEffect(() => {
@@ -549,7 +555,7 @@ export default function FinanceDashboard() {
   const fetchTrackerData = useCallback(async (manual = false) => {
     // We now just use the consolidated autoPullData for the selected date
     await autoPullData(formDate, manual);
-  }, [formDate]);
+  }, [formDate, autoPullData]);
 
   const recalculateExtras = useCallback((rows: any[]) => {
     const newExtras: Record<string, number> = {};
