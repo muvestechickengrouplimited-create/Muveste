@@ -136,9 +136,10 @@ export async function POST(request: Request) {
     const sheets = google.sheets({ version: 'v4', auth: authClient });
 
     // 1. Rewrite finance-expenses (Detail Log) with "Delete Today First" strategy
-    const currentDetailRows = await getRows('finance-expenses');
+    const currentDetailRows = await getRows('finance-expenses', true); // ALWAYS bypass cache for writes
     const detailHeader = currentDetailRows[0] || ['Date', 'Name', 'Department', 'Amount', 'By', 'Timestamp'];
-    const filteredDetailRows = currentDetailRows.slice(1).filter(r => r[0] !== date);
+    const normalizedTarget = normalizeDate(date);
+    const filteredDetailRows = currentDetailRows.slice(1).filter(r => normalizeDate(r[0]) !== normalizedTarget);
 
     const newDetailRows: string[][] = [];
     const timestamp = new Date().toISOString();

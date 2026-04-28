@@ -551,6 +551,42 @@ export default function FinanceDashboard() {
     await autoPullData(formDate, manual);
   }, [formDate]);
 
+  const recalculateExtras = useCallback((rows: any[]) => {
+    const newExtras: Record<string, number> = {};
+    // Initialize all department keys (including per-batch) to 0
+    for (const dept of departmentList) newExtras[dept] = 0;
+
+    rows.forEach(row => {
+      // Normalize department selection
+      let selectedDepts: string[] = [];
+      if (Array.isArray(row.department)) {
+        selectedDepts = row.department;
+      } else if (row.department === 'All Departments') {
+        selectedDepts = departmentList;
+      } else if (row.department) {
+        selectedDepts = [row.department];
+      }
+      
+      if (selectedDepts.length > 0 && row.amount) {
+        const share = row.amount / selectedDepts.length;
+        selectedDepts.forEach((dept: string) => {
+          // Normalize names for matching: ignore dash types and trimming
+          const normalizedDept = dept.trim().replace(/[—–-]/g, '-');
+          const match = departmentList.find(d => d.trim().replace(/[—–-]/g, '-') === normalizedDept);
+          
+          if (match) {
+            newExtras[match] += share;
+          } else if (dept in newExtras) {
+            // Exact match fallback
+            newExtras[dept] += share;
+          }
+        });
+      }
+    });
+
+    setFinanceExtras(newExtras);
+  }, [batches]); // departmentList depends on batches
+
   const loadSavedExpenses = useCallback(async () => {
     try {
       // Use formDate (YYYY-MM-DD) but convert if API expects Apr 9, 2026 style
@@ -582,7 +618,7 @@ export default function FinanceDashboard() {
     } catch (e) {
       console.warn("Failed to load saved expenses", e);
     }
-  }, []);
+  }, [formDate, recalculateExtras]);
 
   useEffect(() => {
     let active = true;
@@ -621,41 +657,6 @@ export default function FinanceDashboard() {
     setTimeout(() => setJustUpdated(null), 1000);
   };
 
-  const recalculateExtras = (rows: any[]) => {
-    const newExtras: Record<string, number> = {};
-    // Initialize all department keys (including per-batch) to 0
-    for (const dept of departmentList) newExtras[dept] = 0;
-
-    rows.forEach(row => {
-      // Normalize department selection
-      let selectedDepts: string[] = [];
-      if (Array.isArray(row.department)) {
-        selectedDepts = row.department;
-      } else if (row.department === 'All Departments') {
-        selectedDepts = departmentList;
-      } else if (row.department) {
-        selectedDepts = [row.department];
-      }
-      
-      if (selectedDepts.length > 0 && row.amount) {
-        const share = row.amount / selectedDepts.length;
-        selectedDepts.forEach((dept: string) => {
-          // Normalize names for matching: ignore dash types and trimming
-          const normalizedDept = dept.trim().replace(/[—–-]/g, '-');
-          const match = departmentList.find(d => d.trim().replace(/[—–-]/g, '-') === normalizedDept);
-          
-          if (match) {
-            newExtras[match] += share;
-          } else if (dept in newExtras) {
-            // Exact match fallback
-            newExtras[dept] += share;
-          }
-        });
-      }
-    });
-
-    setFinanceExtras(newExtras);
-  };
 
   const addBizRow = () => {
     setBizRows(prev => [{ name: '', department: '', amount: 0 }, ...prev]);
