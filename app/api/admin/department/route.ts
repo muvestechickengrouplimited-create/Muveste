@@ -2,6 +2,15 @@ import { NextResponse } from 'next/server';
 import { getRows } from '../../../../lib/sheets';
 import * as admin from 'firebase-admin';
 
+if (!admin.apps.length) {
+  admin.initializeApp({
+    credential: admin.credential.cert({
+      projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+      clientEmail: process.env.FIREBASE_SERVICE_ACCOUNT_EMAIL || process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
+      privateKey: (process.env.FIREBASE_PRIVATE_KEY || process.env.GOOGLE_PRIVATE_KEY)?.replace(/\\n/g, '\n'),
+    }),
+  });
+}
 function parseNum(val: unknown): number {
   if (typeof val === 'number') return isNaN(val) ? 0 : val;
   if (typeof val === 'string') {
@@ -203,6 +212,6 @@ export async function GET(request: Request) {
     return NextResponse.json({ success: true, headers, data });
   } catch (error) {
     console.error('API Admin Department Error:', error);
-    return NextResponse.json({ success: false, error: 'Internal Server Error' }, { status: 500 });
+    return NextResponse.json({ success: false, error: `Internal Server Error: ${(error as any).message}` }, { status: 500 });
   }
 }

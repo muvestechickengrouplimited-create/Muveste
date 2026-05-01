@@ -9,7 +9,8 @@ const STAFF_ACCOUNTS = [
   { email: 'broiler@30plus.rw', label: 'Broiler Farm' },
   { email: 'eggkiosk@30plus.rw', label: 'Egg Kiosk' },
   { email: 'butcher@30plus.rw', label: 'Butchery' },
-  { email: 'finance@30plus.rw', label: 'Finance' }
+  { email: 'finance@30plus.rw', label: 'Finance' },
+  { email: 'admin@30plus.rw', label: 'Admin (Your Account)' }
 ];
 
 export default function AdminChangePassword() {
