@@ -2,12 +2,15 @@ import { NextResponse } from 'next/server';
 import { getRows } from '../../../../lib/sheets';
 import * as admin from 'firebase-admin';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: Request) {
   try {
     const authHeader = request.headers.get('Authorization');
     if (!authHeader?.startsWith('Bearer ')) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     const token = await admin.auth().verifyIdToken(authHeader.split('Bearer ')[1]);
-    if (token.email?.toLowerCase() !== 'admin@30plus.rw') return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    const emailLower = token.email?.toLowerCase();
+    if (emailLower !== 'admin@muveste.com') return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
     const rows = await getRows('admin-log');
     if (!rows || rows.length <= 1) return NextResponse.json([]);

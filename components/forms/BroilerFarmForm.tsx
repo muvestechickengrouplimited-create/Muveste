@@ -55,13 +55,11 @@ function validate(f: {
   if (f.notes && f.notes.length > 300) errors.notes = 'Notes must be 300 characters or less';
   return errors;
 }
-
 // ─── Shared input class ─────────────────────────────────────────────────────
 const inputCls =
-  'flex h-11 w-full rounded-xl border-2 border-gray-100 bg-white px-4 py-3 text-sm text-[#111827] ' +
+  'flex h-12 md:h-11 w-full rounded-xl border-2 border-gray-100 bg-white px-4 py-3 md:px-3 md:py-2 text-base md:text-sm text-[#111827] ' +
   'focus-visible:outline-none focus:border-[#F5C518] ' +
   'transition-colors';
-
 // ─── Component ──────────────────────────────────────────────────────────────
 export function BroilerFarmForm({ onSubmitSuccess }: { onSubmitSuccess?: () => void }) {
   const [isLoading, setIsLoading] = useState(false);
@@ -104,9 +102,14 @@ export function BroilerFarmForm({ onSubmitSuccess }: { onSubmitSuccess?: () => v
     fetch('/api/admin/batches')
       .then(r => r.json())
       .then(data => {
-        const active = data.filter((b: string[]) => b[2] === 'Active');
-        setBatches(active);
-      });
+        if (Array.isArray(data)) {
+          const active = data.filter((b: string[]) => b && b[2] === 'Active');
+          setBatches(active);
+        } else {
+          console.error('Failed to load batches:', data);
+        }
+      })
+      .catch(err => console.error('Error fetching batches:', err));
   }, []);
 
   // Real-time auto-calculation
@@ -585,23 +588,25 @@ export function BroilerFarmForm({ onSubmitSuccess }: { onSubmitSuccess?: () => v
           </div>
 
           {/* ── Submit ────────────────────────────────────────────────── */}
-          <button
-            type="submit"
-            disabled={isLoading}
-            className={`w-full h-14 rounded-2xl text-base font-bold transition shadow-sm flex items-center justify-center gap-2
-              ${isLoading ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-[#1B6B3A] text-white hover:bg-[#15522c] active:scale-[0.98]'}`}
-          >
-            {isLoading ? (
-              <div className="w-5 h-5 border-2 border-gray-300 border-t-gray-500 rounded-full animate-spin" />
-            ) : (
-              <>
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-                </svg>
-                Submit Daily Report
-              </>
-            )}
-          </button>
+          <div className="sticky bottom-4 md:relative w-full z-10">
+            <button
+              type="submit"
+              disabled={isLoading}
+              className={`w-full h-14 rounded-2xl text-base font-bold transition shadow-sm flex items-center justify-center gap-2
+                ${isLoading ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-[#1B6B3A] text-white hover:bg-[#15522c] active:scale-[0.98]'}`}
+            >
+              {isLoading ? (
+                <div className="w-5 h-5 border-2 border-gray-300 border-t-gray-500 rounded-full animate-spin" />
+              ) : (
+                <>
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Submit Daily Report
+                </>
+              )}
+            </button>
+          </div>
         </form>
       </CardContent>
     </Card>

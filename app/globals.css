@@ -65,3 +65,33 @@ html {
     font-family: 'JetBrains Mono', monospace;
   }
 }
+
+/* ─── Premium Mobile & Scrolling Tuning ─────────────────────────────────── */
+html, body {
+  overflow-x: hidden;
+  max-width: 100vw;
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+  scroll-behavior: smooth;
+}
+
+/* Custom scrollbar hides */
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-none {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
+/* Smooth kinetic momentum scroll for custom scroll areas */
+.scroll-touch {
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Improve minimum interactive target sizes on small devices */
+@media (max-width: 768px) {
+  input, select, button, textarea {
+    min-height: 44px; /* Standard Apple Tap Target Guideline */
+  }
+}

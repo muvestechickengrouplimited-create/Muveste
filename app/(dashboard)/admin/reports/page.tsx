@@ -8,16 +8,14 @@ import { useToast } from '../../../../components/ui/Toast';
 import { auth } from '../../../../lib/firebase';
 
 const DEPTS = [
-  { id: 'egg-farm', label: 'Egg Farm' },
   { id: 'broiler-farm', label: 'Broiler Farm' },
-  { id: 'egg-kiosk', label: 'Egg Kiosk' },
-  { id: 'butcher', label: 'butcher' },
+  { id: 'butcher', label: 'Butchery' },
   { id: 'finance-summary', label: 'Finance (Summary)' },
 ];
 
 export default function AdminReportsPage() {
   const { toast } = useToast();
-  const [dept, setDept] = useState('egg-farm');
+  const [dept, setDept] = useState('broiler-farm');
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
   const [loading, setLoading] = useState(false);
@@ -57,7 +55,7 @@ export default function AdminReportsPage() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `30plus-${dept}-report-${fromDate || 'start'}-to-${toDate || 'end'}.csv`;
+    a.download = `muveste-${dept}-report-${fromDate || 'start'}-to-${toDate || 'end'}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   };

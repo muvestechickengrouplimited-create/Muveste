@@ -3,16 +3,22 @@ import { prependRow, getRows } from '../../../lib/sheets';
 import { formatDate, formatTime } from '../../../lib/utils';
 import * as admin from 'firebase-admin';
 
+export const dynamic = 'force-dynamic';
+
 // Initialize Firebase Admin using environment variables if not already initialized
 if (!admin.apps.length) {
-  admin.initializeApp({
-    credential: admin.credential.cert({
-      projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-      clientEmail: process.env.FIREBASE_SERVICE_ACCOUNT_EMAIL || process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
-      // Replace literal \n with actual newlines in case it's escaped in env vars
-      privateKey: (process.env.FIREBASE_PRIVATE_KEY || process.env.GOOGLE_PRIVATE_KEY)?.replace(/\\n/g, '\n'),
-    }),
-  });
+  try {
+    admin.initializeApp({
+      credential: admin.credential.cert({
+        projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+        clientEmail: process.env.FIREBASE_SERVICE_ACCOUNT_EMAIL || process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
+        // Replace literal \n with actual newlines in case it's escaped in env vars
+        privateKey: (process.env.FIREBASE_PRIVATE_KEY || process.env.GOOGLE_PRIVATE_KEY)?.replace(/\\n/g, '\n'),
+      }),
+    });
+  } catch (err) {
+    console.warn("Firebase Admin failed to initialize during static generation:", err);
+  }
 }
 
 // ─── Helper ────────────────────────────────────────────────────────────────
@@ -49,7 +55,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const userEmail = decodedToken.email;
+    const userEmail = decodedToken.email?.toLowerCase();
     if (!userEmail) {
       return NextResponse.json(
         { error: 'Unauthorized: No email associated with token' },
@@ -59,8 +65,8 @@ export async function POST(request: Request) {
 
     // Role check: Only butcher or admin can submit
     const isAuthorized =
-      userEmail.toLowerCase() === 'butcher@30plus.rw' ||
-      userEmail.toLowerCase() === 'admin@30plus.rw';
+      userEmail === 'butchery-rwamagana@muveste.com' ||
+      userEmail === 'admin@muveste.com';
     if (!isAuthorized) {
       return NextResponse.json(
         { error: 'Forbidden: Insufficient permissions for butcher' },
@@ -97,7 +103,7 @@ export async function POST(request: Request) {
     // 3. Fetch previous stock
     let previousStock = 0;
     try {
-      const allRows = await getRows('butcher', true); // Bypass cache to get real-time stock
+      const allRows = await getRows('butcher-rwamagana', true); // Bypass cache to get real-time stock
       if (allRows && allRows.length > 1) {
         // Find latest row
         // Rows: Date, Received, Sold, Price, Damaged, Left, Exp, Total, Profit...
@@ -146,13 +152,13 @@ export async function POST(request: Request) {
       now.toISOString(),
     ];
 
-    await prependRow('butcher', rowData);
+    await prependRow('butcher-rwamagana', rowData);
 
     // 5. Log to admin-log tab
     await prependRow('admin-log', [
       formatDate(now),
       formatTime(now),
-      'butcher',
+      'butcher-rwamagana',
       'Daily report submitted',
       userEmail,
       'Submitted',
@@ -160,10 +166,10 @@ export async function POST(request: Request) {
     ]);
 
     return NextResponse.json({ success: true, totalSales, profit }, { status: 201 });
-  } catch (error: unknown) {
+  } catch (error: any) {
     console.error('API Error in butcher/route.ts [POST]:', error);
     return NextResponse.json(
-      { error: 'Internal Server Error' },
+      { error: error.message || 'Internal Server Error' },
       { status: 500 }
     );
   }
@@ -176,7 +182,7 @@ export async function GET(request: Request) {
     const period = searchParams.get('period'); // 'monthly' | null
 
     // Fetch all rows from the butcher sheet (row 0 is headers), bypass cache
-    const rows = await getRows('butcher', true);
+    const rows = await getRows('butcher-rwamagana', true);
     if (!rows || rows.length <= 1) {
       if (period === 'monthly') {
         return NextResponse.json({
@@ -259,10 +265,10 @@ export async function GET(request: Request) {
       );
 
     return NextResponse.json({ success: true, data: recent });
-  } catch (error: unknown) {
+  } catch (error: any) {
     console.error('API Error in butcher/route.ts [GET]:', error);
     return NextResponse.json(
-      { success: false, error: 'Internal Server Error' },
+      { success: false, error: error.message || 'Internal Server Error' },
       { status: 500 }
     );
   }

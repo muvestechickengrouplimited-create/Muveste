@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import { auth } from '../../lib/firebase';
 import { signOut } from 'firebase/auth';
@@ -63,56 +64,58 @@ export function Navbar() {
 
   // Public Navbar
   return (
-    <nav className="sticky top-0 z-50 bg-white border-b border-gray-100 shadow-sm">
-      <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-        <Link href="/" className="flex items-center">
-          <img 
-            src="/logo.png" 
-            alt="30 Plus Logo" 
-            className="h-14 w-auto object-contain"
-          />
+    <nav className="sticky top-0 z-50 bg-white border-b border-[#e8e6e0] font-['DM_Sans',sans-serif]">
+      <div className="h-[68px] px-6 md:px-[60px] flex items-center justify-between w-full">
+        {/* Left */}
+        <Link href="/" className="flex items-center gap-3">
+          <div className="w-[38px] h-[38px] relative overflow-hidden rounded-lg flex-shrink-0">
+            <Image src="/logo.jpeg" alt="Muveste Logo" fill className="object-cover" />
+          </div>
+          <span className="text-[#228B22] font-['Cormorant_Garamond',serif] text-[22px] font-bold">
+            Muveste
+          </span>
         </Link>
 
         {/* Center Links (Desktop) */}
-        <div className="hidden md:flex items-center gap-8">
-          <Link href="/" className="text-[#2D2D2D] hover:text-[#1B6B3A] hover:underline decoration-[#1B6B3A] underline-offset-8 font-medium text-sm transition-colors">Home</Link>
-          <Link href="/about" className="text-[#2D2D2D] hover:text-[#1B6B3A] hover:underline decoration-[#1B6B3A] underline-offset-8 font-medium text-sm transition-colors">About Us</Link>
-          <a href="#marketplace" className="text-[#2D2D2D] hover:text-[#1B6B3A] hover:underline decoration-[#1B6B3A] underline-offset-8 font-medium text-sm transition-colors">Marketplace</a>
-          <a href="#locations" className="text-[#2D2D2D] hover:text-[#1B6B3A] hover:underline decoration-[#1B6B3A] underline-offset-8 font-medium text-sm transition-colors">Locations</a>
-          <a href="#contact" className="text-[#2D2D2D] hover:text-[#1B6B3A] hover:underline decoration-[#1B6B3A] underline-offset-8 font-medium text-sm transition-colors">Contact Us</a>
+        <div className="hidden md:flex items-center gap-8 h-full">
+          <Link href="/" className={`text-[13px] h-full flex items-center border-b-[2px] transition-colors ${pathname === '/' ? 'text-[#228B22] border-[#FFDE1A]' : 'text-[#6b6960] border-transparent hover:text-[#228B22]'}`}>Home</Link>
+          <Link href="/about" className={`text-[13px] h-full flex items-center border-b-[2px] transition-colors ${pathname === '/about' ? 'text-[#228B22] border-[#FFDE1A]' : 'text-[#6b6960] border-transparent hover:text-[#228B22]'}`}>About</Link>
+          <Link href="/#products" className="text-[#6b6960] text-[13px] h-full flex items-center border-b-[2px] border-transparent hover:text-[#228B22] transition-colors">Products</Link>
+          <Link href="/#locations" className="text-[#6b6960] text-[13px] h-full flex items-center border-b-[2px] border-transparent hover:text-[#228B22] transition-colors">Locations</Link>
+          <Link href="/#contact" className="text-[#6b6960] text-[13px] h-full flex items-center border-b-[2px] border-transparent hover:text-[#228B22] transition-colors">Contact</Link>
         </div>
 
         {/* Right Button (Desktop) */}
         <div className="hidden md:block">
-          <Link href="/login" className="bg-[#1B6B3A] text-white hover:bg-[#E07B00] rounded-full px-5 py-2.5 font-semibold text-sm transition-all duration-300 shadow-sm active:scale-95">
-            Staff Login
+          <Link href="/login" className="border-[1.5px] border-[#228B22] text-[#228B22] bg-transparent rounded-lg px-5 py-2 text-[14px] font-medium hover:bg-[#228B22] hover:text-white transition-colors">
+            Staff Portal
           </Link>
         </div>
 
         {/* Mobile Toggle */}
         <button 
-          className="md:hidden text-[#2D2D2D] p-2"
+          className="md:hidden text-[#228B22] p-2"
           onClick={() => setIsMenuOpen(!isMenuOpen)}
         >
           <div className="space-y-1.5 w-6">
-            <span className={`block h-[2.5px] bg-[#2D2D2D] transition-all ${isMenuOpen ? 'rotate-45 translate-y-2' : ''}`} />
-            <span className={`block h-[2.5px] bg-[#2D2D2D] transition-opacity ${isMenuOpen ? 'opacity-0' : ''}`} />
-            <span className={`block h-[2.5px] bg-[#2D2D2D] transition-all ${isMenuOpen ? '-rotate-45 -translate-y-2' : ''}`} />
+            <span className={`block h-[2.5px] bg-current transition-all ${isMenuOpen ? 'rotate-45 translate-y-2' : ''}`} />
+            <span className={`block h-[2.5px] bg-current transition-opacity ${isMenuOpen ? 'opacity-0' : ''}`} />
+            <span className={`block h-[2.5px] bg-current transition-all ${isMenuOpen ? '-rotate-45 -translate-y-2' : ''}`} />
           </div>
         </button>
       </div>
 
       {/* Mobile Menu Overlay */}
       {isMenuOpen && (
-        <div className="md:hidden bg-white border-b border-gray-100 shadow-md flex flex-col animate-in slide-in-from-top duration-300">
-          <Link href="/" onClick={() => setIsMenuOpen(false)} className="text-[#2D2D2D] py-3 px-6 font-medium border-b border-gray-50">Home</Link>
-          <Link href="/about" onClick={() => setIsMenuOpen(false)} className="text-[#2D2D2D] py-3 px-6 font-medium border-b border-gray-50">About Us</Link>
-          <a href="#marketplace" onClick={() => setIsMenuOpen(false)} className="text-[#2D2D2D] py-3 px-6 font-medium border-b border-gray-50">Marketplace</a>
-          <a href="#locations" onClick={() => setIsMenuOpen(false)} className="text-[#2D2D2D] py-3 px-6 font-medium border-b border-gray-50">Locations</a>
-          <a href="#contact" onClick={() => setIsMenuOpen(false)} className="text-[#2D2D2D] py-3 px-6 font-medium border-b border-gray-50">Contact Us</a>
-          <div className="p-4">
-            <Link href="/login" onClick={() => setIsMenuOpen(false)} className="block w-full bg-[#1B6B3A] text-white hover:bg-[#E07B00] rounded-full px-5 py-3 font-semibold text-center transition-all shadow-sm">
-              Staff Login
+        <div className="md:hidden bg-white border-b border-[#e8e6e0] shadow-md flex flex-col animate-in slide-in-from-top duration-300">
+          <Link href="/" onClick={() => setIsMenuOpen(false)} className="text-[#6b6960] py-4 px-6 text-[13px] border-b border-[#e8e6e0]">Home</Link>
+          <Link href="/about" onClick={() => setIsMenuOpen(false)} className="text-[#6b6960] py-4 px-6 text-[13px] border-b border-[#e8e6e0]">About</Link>
+          <Link href="/#products" onClick={() => setIsMenuOpen(false)} className="text-[#6b6960] py-4 px-6 text-[13px] border-b border-[#e8e6e0]">Products</Link>
+          <Link href="/#locations" onClick={() => setIsMenuOpen(false)} className="text-[#6b6960] py-4 px-6 text-[13px] border-b border-[#e8e6e0]">Locations</Link>
+          <Link href="/#contact" onClick={() => setIsMenuOpen(false)} className="text-[#6b6960] py-4 px-6 text-[13px] border-b border-[#e8e6e0]">Contact</Link>
+          <div className="p-6">
+            <Link href="/login" onClick={() => setIsMenuOpen(false)} className="block w-full border-[1.5px] border-[#228B22] text-[#228B22] bg-transparent rounded-lg px-5 py-3 text-center text-sm font-medium hover:bg-[#228B22] hover:text-white transition-colors">
+              Staff Portal
             </Link>
           </div>
         </div>

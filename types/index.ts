@@ -1,8 +1,8 @@
 export type UserRole =
-  | 'egg_farm'
   | 'broiler_farm'
-  | 'egg_kiosk'
-  | 'butcher'
+  | 'butcher_kibungo'
+  | 'butcher_rwamagana'
+  | 'butcher_nyabugogo'
   | 'finance'
   | 'admin';
 
@@ -19,28 +19,11 @@ export interface BaseReport {
   createdAt?: string;
 }
 
-export interface EggFarmReport extends BaseReport {
-  flockAgeWeeks: number;
-  mortality: number;
-  feedConsumedKg: number;
-  eggsProducedTrays: number;
-  damagedEggs: number;
-  notes?: string;
-}
-
 export interface BroilerFarmReport extends BaseReport {
   flockAgeDays: number;
   mortality: number;
   feedConsumedKg: number;
   averageWeightKg: number;
-  notes?: string;
-}
-
-export interface EggKioskReport extends BaseReport {
-  eggsReceivedTrays: number;
-  eggsSoldTrays: number;
-  pricePerTray: number;
-  totalRevenue: number;
   notes?: string;
 }
 

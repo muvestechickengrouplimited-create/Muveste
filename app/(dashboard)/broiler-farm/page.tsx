@@ -69,12 +69,19 @@ const ExpenseIcon = () => (
 );
 
 // ─── Page ────────────────────────────────────────────────────────────────────
+// ─── Skeleton ────────────────────────────────────────────────────────────────
+const Skeleton = ({ className }: { className?: string }) => (
+  <div className={`animate-pulse bg-[#e8f5e8] rounded-xl ${className}`} />
+);
+
+// ─── Page ────────────────────────────────────────────────────────────────────
 export default function BroilerFarmDashboard() {
   const [records, setRecords] = useState<BroilerFarmRecord[]>([]);
   const [batches, setBatches] = useState<string[][]>([]);
   const [selectedBatch, setSelectedBatch] = useState('All');
   const [loading, setLoading] = useState(true);
-  const [error,   setError]   = useState<string | null>(null);
+  const [error,   setError]   = useState<boolean>(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const todayStr   = new Date().toISOString().split('T')[0];
   const todayLabel = new Date().toLocaleDateString('en-US', {
@@ -85,13 +92,16 @@ export default function BroilerFarmDashboard() {
   });
 
   const fetchData = useCallback(async () => {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 8000);
     try {
       setLoading(true);
-      setError(null);
+      setError(false);
+      setErrorMessage(null);
 
       const token = await auth.currentUser?.getIdToken();
       if (!token) {
-        setError('Not authenticated. Please refresh the page.');
+        setErrorMessage('Not authenticated. Please refresh the page.');
         return;
       }
 
@@ -100,15 +110,19 @@ export default function BroilerFarmDashboard() {
         fetch('/api/broiler-farm', {
           headers: { Authorization: `Bearer ${token}` },
           cache: 'no-store',
+          signal: controller.signal,
         }),
         fetch('/api/admin/batches', {
           headers: { Authorization: `Bearer ${token}` },
+          signal: controller.signal,
         })
       ]);
 
+      clearTimeout(timeout);
+
       if (!recRes.ok) {
         const data = await recRes.json().catch(() => ({}));
-        setError(data.error || 'Failed to load records');
+        setErrorMessage(data.error || 'Failed to load records');
       } else {
         const data = await recRes.json();
         setRecords(data.data || []);
@@ -119,8 +133,9 @@ export default function BroilerFarmDashboard() {
         setBatches(data || []);
       }
     } catch (err) {
+      clearTimeout(timeout);
       console.error('Failed to fetch data:', err);
-      setError('Failed to load data. Please refresh.');
+      setError(true);
     } finally {
       setLoading(false);
     }
@@ -146,25 +161,8 @@ export default function BroilerFarmDashboard() {
   // Recent submissions
   const recent = filteredRecords.slice(0, 20);
 
-  if (loading && records.length === 0) {
-    return (
-      <div className="p-8">
-        <div className="animate-pulse space-y-8 max-w-7xl mx-auto">
-          <div className="h-10 bg-gray-200 rounded w-1/4"></div>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="h-28 bg-gray-200 rounded-2xl"></div>
-            <div className="h-28 bg-gray-200 rounded-2xl"></div>
-            <div className="h-28 bg-gray-200 rounded-2xl"></div>
-            <div className="h-28 bg-gray-200 rounded-2xl"></div>
-          </div>
-          <div className="h-96 bg-gray-200 rounded-2xl mt-8"></div>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="space-y-8 pb-8">
+    <div className="space-y-8 pb-8 px-4 py-4 md:px-8 md:py-6">
       {/* ── Header ─────────────────────────────────────────────────────── */}
       <div className="flex flex-col gap-1">
         <h1 className="text-3xl font-bold tracking-tight text-[#1B6B3A]">
@@ -172,6 +170,27 @@ export default function BroilerFarmDashboard() {
         </h1>
         <p className="text-[#111827] opacity-70 text-base">{todayLabel}</p>
       </div>
+
+      {/* ── Error Boundaries ───────────────────────────────────────────── */}
+      {error && (
+        <div className="bg-red-50 border border-red-100 rounded-xl p-4 text-center">
+          <p className="text-sm text-red-500 mb-3">
+            Failed to load data
+          </p>
+          <button
+            onClick={() => window.location.reload()}
+            className="bg-[#006400] text-white rounded-lg px-4 py-2 text-xs font-semibold"
+          >
+            Retry
+          </button>
+        </div>
+      )}
+
+      {errorMessage && (
+        <div className="bg-red-50 border border-red-200 rounded-2xl p-4 text-center">
+          <p className="text-sm text-red-600 font-medium">{errorMessage}</p>
+        </div>
+      )}
 
       {/* ── Batch Selector ─────────────────────────────────────────────── */}
       <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-none">
@@ -199,32 +218,40 @@ export default function BroilerFarmDashboard() {
       </div>
 
       {/* ── Summary Cards ───────────────────────────────────────────────── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard
-          title="Number of Birds"
-          value={totalLiveBirds.toLocaleString()}
-          color="green"
-          icon={<BirdIcon />}
-        />
-        <StatCard
-          title="Revenues"
-          value={formatRWF(revenue)}
-          color="green"
-          icon={<RevenueIcon />}
-        />
-        <StatCard
-          title="Expenses"
-          value={formatRWF(expenses)}
-          color="orange"
-          icon={<ExpenseIcon />}
-        />
-        <StatCard
-          title="Profit"
-          value={formatRWF(profit)}
-          color={profit >= 0 ? 'green' : 'red'}
-          icon={<RevenueIcon />}
-        />
-      </div>
+      {loading ? (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+          {[1,2,3,4].map(i => (
+            <Skeleton key={i} className="h-28"/>
+          ))}
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+          <StatCard
+            title="Number of Birds"
+            value={totalLiveBirds.toLocaleString()}
+            color="green"
+            icon={<BirdIcon />}
+          />
+          <StatCard
+            title="Revenues"
+            value={formatRWF(revenue)}
+            color="green"
+            icon={<RevenueIcon />}
+          />
+          <StatCard
+            title="Expenses"
+            value={formatRWF(expenses)}
+            color="orange"
+            icon={<ExpenseIcon />}
+          />
+          <StatCard
+            title="Profit"
+            value={formatRWF(profit)}
+            color={profit >= 0 ? 'green' : 'red'}
+            icon={<RevenueIcon />}
+          />
+        </div>
+      )}
 
       {/* ── Batch Breakdown Cards (Only when All is selected) ─────────── */}
       {selectedBatch === 'All' && batches.length > 0 && (
@@ -270,7 +297,7 @@ export default function BroilerFarmDashboard() {
         {/* Recent Submissions — 40% */}
         <div className="lg:col-span-2 flex flex-col gap-3">
           <div className="flex items-center justify-between px-1">
-            <h2 className="text-base font-bold text-[#111827]">
+            <h2 className="text-xl md:text-2xl font-bold text-[#111827]">
               Recent Submissions
               {selectedBatch !== 'All' && <span className="text-[#1B6B3A] ml-2">({selectedBatch})</span>}
             </h2>
@@ -286,10 +313,6 @@ export default function BroilerFarmDashboard() {
             <div className="flex items-center justify-center py-12 bg-white rounded-2xl border border-gray-100 shadow-sm">
               <div className="animate-spin rounded-full h-8 w-8 border-4 border-[#1B6B3A] border-t-transparent" />
             </div>
-          ) : error ? (
-            <div className="bg-red-50 border border-red-200 rounded-2xl p-4 text-center">
-              <p className="text-sm text-red-600 font-medium">{error}</p>
-            </div>
           ) : recent.length === 0 ? (
             <div className="bg-white rounded-2xl border border-gray-100 py-12 flex flex-col items-center gap-2 shadow-sm">
               <span className="text-4xl text-gray-200 font-bold">BATCH EMPTY</span>
@@ -297,45 +320,47 @@ export default function BroilerFarmDashboard() {
             </div>
           ) : (
             <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm">
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader className="bg-gray-50/50">
-                    <TableRow>
-                      <TableHead className="font-bold text-[10px] uppercase">Date</TableHead>
-                      {selectedBatch === 'All' && <TableHead className="font-bold text-[10px] uppercase">Batch</TableHead>}
-                      <TableHead className="font-bold text-[10px] uppercase text-right">Opening</TableHead>
-                      <TableHead className="font-bold text-[10px] uppercase text-right">Mortality</TableHead>
-                      <TableHead className="font-bold text-[10px] uppercase text-right">Sold</TableHead>
-                      <TableHead className="font-bold text-[10px] uppercase text-right">Closing</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {recent.map((record, idx) => (
-                      <TableRow key={`${record.date}-${idx}`} className="hover:bg-gray-50/50 transition-colors">
-                        <TableCell className="whitespace-nowrap font-bold text-xs">
-                          {formatDate(record.date)}
-                        </TableCell>
-                        {selectedBatch === 'All' && (
-                          <TableCell className="font-bold text-xs text-[#1B6B3A]">
-                            {record.batch}
-                          </TableCell>
-                        )}
-                        <TableCell className="font-mono text-right text-xs">
-                          {record.numberOfBirds}
-                        </TableCell>
-                        <TableCell className="font-mono text-right text-red-500 font-bold text-xs">
-                          {record.mortality}
-                        </TableCell>
-                        <TableCell className="font-mono text-right text-[#E07B00] font-bold text-xs">
-                          {record.birdsSold}
-                        </TableCell>
-                        <TableCell className="font-mono text-right text-[#1B6B3A] font-bold text-xs">
-                          {record.liveBirds}
-                        </TableCell>
+              <div className="overflow-x-auto -mx-4 md:mx-0">
+                <div className="min-w-[600px] px-4 md:px-0 md:min-w-0">
+                  <Table className="w-full">
+                    <TableHeader className="bg-gray-50/50">
+                      <TableRow>
+                        <TableHead className="font-bold text-[10px] uppercase">Date</TableHead>
+                        {selectedBatch === 'All' && <TableHead className="font-bold text-[10px] uppercase">Batch</TableHead>}
+                        <TableHead className="font-bold text-[10px] uppercase text-right">Opening</TableHead>
+                        <TableHead className="font-bold text-[10px] uppercase text-right">Mortality</TableHead>
+                        <TableHead className="font-bold text-[10px] uppercase text-right">Sold</TableHead>
+                        <TableHead className="font-bold text-[10px] uppercase text-right">Closing</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {recent.map((record, idx) => (
+                        <TableRow key={`${record.date}-${idx}`} className="hover:bg-gray-50/50 transition-colors">
+                          <TableCell className="whitespace-nowrap font-bold text-xs">
+                            {formatDate(record.date)}
+                          </TableCell>
+                          {selectedBatch === 'All' && (
+                            <TableCell className="font-bold text-xs text-[#1B6B3A]">
+                              {record.batch}
+                            </TableCell>
+                          )}
+                          <TableCell className="font-mono text-right text-xs">
+                            {record.numberOfBirds}
+                          </TableCell>
+                          <TableCell className="font-mono text-right text-red-500 font-bold text-xs">
+                            {record.mortality}
+                          </TableCell>
+                          <TableCell className="font-mono text-right text-[#E07B00] font-bold text-xs">
+                            {record.birdsSold}
+                          </TableCell>
+                          <TableCell className="font-mono text-right text-[#1B6B3A] font-bold text-xs">
+                            {record.liveBirds}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
               </div>
             </div>
           )}

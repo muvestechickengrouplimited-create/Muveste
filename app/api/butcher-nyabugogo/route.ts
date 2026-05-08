@@ -3,16 +3,22 @@ import { prependRow, getRows } from '../../../lib/sheets';
 import { formatDate, formatTime } from '../../../lib/utils';
 import * as admin from 'firebase-admin';
 
+export const dynamic = 'force-dynamic';
+
 // Initialize Firebase Admin using environment variables if not already initialized
 if (!admin.apps.length) {
-  admin.initializeApp({
-    credential: admin.credential.cert({
-      projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-      clientEmail: process.env.FIREBASE_SERVICE_ACCOUNT_EMAIL || process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
-      // Replace literal \n with actual newlines in case it's escaped in env vars
-      privateKey: (process.env.FIREBASE_PRIVATE_KEY || process.env.GOOGLE_PRIVATE_KEY)?.replace(/\\n/g, '\n'),
-    }),
-  });
+  try {
+    admin.initializeApp({
+      credential: admin.credential.cert({
+        projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+        clientEmail: process.env.FIREBASE_SERVICE_ACCOUNT_EMAIL || process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
+        // Replace literal \n with actual newlines in case it's escaped in env vars
+        privateKey: (process.env.FIREBASE_PRIVATE_KEY || process.env.GOOGLE_PRIVATE_KEY)?.replace(/\\n/g, '\n'),
+      }),
+    });
+  } catch (err) {
+    console.warn("Firebase Admin failed to initialize during static generation:", err);
+  }
 }
 
 // ─── Helper ────────────────────────────────────────────────────────────────
@@ -49,7 +55,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const userEmail = decodedToken.email;
+    const userEmail = decodedToken.email?.toLowerCase();
     if (!userEmail) {
       return NextResponse.json(
         { error: 'Unauthorized: No email associated with token' },
@@ -57,13 +63,13 @@ export async function POST(request: Request) {
       );
     }
 
-    // Role check: Only egg_kiosk or admin can submit
+    // Role check: Only butcher or admin can submit
     const isAuthorized =
-      userEmail.toLowerCase() === 'eggkiosk@30plus.rw' ||
-      userEmail.toLowerCase() === 'admin@30plus.rw';
+      userEmail === 'butchery-nyabugogo@muveste.com' ||
+      userEmail === 'admin@muveste.com';
     if (!isAuthorized) {
       return NextResponse.json(
-        { error: 'Forbidden: Insufficient permissions for Egg Kiosk' },
+        { error: 'Forbidden: Insufficient permissions for butcher' },
         { status: 403 }
       );
     }
@@ -71,23 +77,21 @@ export async function POST(request: Request) {
     // 2. Parse and validate form data
     const body = await request.json();
     const {
-      location,
       date,
-      traysReceived,
-      traysSold,
-      pricePerTray,
-      damagedTrays,
+      meatReceived,
+      meatSold,
+      pricePerKg,
+      damaged,
       expenses,
       notes,
     } = body;
 
     if (
-      location === undefined ||
       date === undefined ||
-      traysReceived === undefined ||
-      traysSold === undefined ||
-      pricePerTray === undefined ||
-      damagedTrays === undefined ||
+      meatReceived === undefined ||
+      meatSold === undefined ||
+      pricePerKg === undefined ||
+      damaged === undefined ||
       expenses === undefined
     ) {
       return NextResponse.json(
@@ -96,58 +100,65 @@ export async function POST(request: Request) {
       );
     }
 
-    // 3. Fetch previous stock for the selected location
+    // 3. Fetch previous stock
     let previousStock = 0;
     try {
-      const allRows = await getRows('egg-kiosk', true); // Bypass cache to get real-time stock
+      const allRows = await getRows('butcher-nyabugogo', true); // Bypass cache to get real-time stock
       if (allRows && allRows.length > 1) {
-        // Find latest row for this location
-        // Rows: Date, Location, Received, Sold, Price, Damaged, Exp, Total, Left, Profit...
+        // Find latest row
+        // Rows: Date, Received, Sold, Price, Damaged, Left, Exp, Total, Profit...
         const locationRows = allRows.slice(1)
-            .filter(r => r[1] === location)
             .sort((a, b) => new Date(b[0]).getTime() - new Date(a[0]).getTime());
         
         if (locationRows.length > 0) {
-          previousStock = parseNum(locationRows[0][8]); // Trays Left from most recent record
+          previousStock = parseNum(locationRows[0][5]); // Stock Left from most recent record
         }
       }
     } catch (e) {
-      console.warn('Failed to fetch previous stock for egg kiosk:', e);
+      console.warn('Failed to fetch previous stock for butcher:', e);
     }
 
     // 4. Server-side calculations (authoritative)
-    const totalSales = parseNum(traysSold) * parseNum(pricePerTray);
-    const profit = totalSales - parseNum(expenses);
+    // New Logic: Total Sales = Meat Sold * Price
+    // Stock Left = Previous Stock + Meat Received - Meat Sold - Damaged
+    const mRec = parseNum(meatReceived);
+    const mSold = parseNum(meatSold);
+    const mPrc = parseNum(pricePerKg);
+    const mDmg = parseNum(damaged);
+    const mExp = parseNum(expenses);
+
+    const totalSales = mSold * mPrc;
+    const stockLeft = previousStock + mRec - mSold - mDmg;
+    // Profit = Total Sales - Butcher Expenses
+    const profit = totalSales - mExp;
     const now = new Date();
 
     // 5. Values order must match sheet headers exactly:
-    // Date | Location | Trays Received | Trays Sold | Price/Tray (RWF) | Damaged Trays
-    // | Expenses (RWF) | Total Sales (RWF) | Trays Left | Profit (RWF) | Notes | Finance Expenses (RWF) | Submitted By | Timestamp
-    const traysLeft = Math.round((previousStock + parseNum(traysReceived) - parseNum(traysSold) - parseNum(damagedTrays)) * 100) / 100;
+    // 0:Date | 1:Meat Received (kg) | 2:Meat Sold (kg) | 3:Price/kg (RWF) | 4:Damaged (kg)
+    // 5:Stock left(kgs) | 6:Expenses (RWF) | 7:Total Sales (RWF) | 8:Profit (RWF) | 9:Notes 
+    // 10:Submitted By | 11:Timestamp
     const rowData = [
       date,
-      location,
-      parseNum(traysReceived),
-      parseNum(traysSold),
-      parseNum(pricePerTray),
-      parseNum(damagedTrays),
-      parseNum(expenses),
+      mRec,
+      mSold,
+      mPrc,
+      mDmg,
+      stockLeft,
+      mExp,
       totalSales,
-      traysLeft,
       profit,
       notes || '',
-      0, // Finance Expenses (RWF) - placeholder
       userEmail,
       now.toISOString(),
     ];
 
-    await prependRow('egg-kiosk', rowData);
+    await prependRow('butcher-nyabugogo', rowData);
 
     // 5. Log to admin-log tab
     await prependRow('admin-log', [
       formatDate(now),
       formatTime(now),
-      'Egg Kiosk',
+      'butcher-nyabugogo',
       'Daily report submitted',
       userEmail,
       'Submitted',
@@ -155,10 +166,10 @@ export async function POST(request: Request) {
     ]);
 
     return NextResponse.json({ success: true, totalSales, profit }, { status: 201 });
-  } catch (error: unknown) {
-    console.error('API Error in egg-kiosk/route.ts [POST]:', error);
+  } catch (error: any) {
+    console.error('API Error in butcher/route.ts [POST]:', error);
     return NextResponse.json(
-      { error: 'Internal Server Error' },
+      { error: error.message || 'Internal Server Error' },
       { status: 500 }
     );
   }
@@ -170,12 +181,12 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const period = searchParams.get('period'); // 'monthly' | null
 
-    // Fetch all rows from the egg-kiosk sheet (row 0 is headers), bypass cache
-    const rows = await getRows('egg-kiosk', true);
+    // Fetch all rows from the butcher sheet (row 0 is headers), bypass cache
+    const rows = await getRows('butcher-nyabugogo', true);
     if (!rows || rows.length <= 1) {
       if (period === 'monthly') {
         return NextResponse.json({
-          totalTraysSold: 0,
+          totalMeatSold: 0,
           totalSales: 0,
           totalExpenses: 0,
           totalDamaged: 0,
@@ -188,7 +199,7 @@ export async function GET(request: Request) {
     // Skip header row (index 0)
     const dataRows = rows.slice(1);
 
-    // Each row: [Date, Location, Trays Received, Trays Sold, Price/Tray, Damaged Trays, Expenses, Total Sales, Profit, Notes, Submitted By, Timestamp]
+    // Each row: [Date, Meat Received, Meat Sold, Price/kg, Damaged, Expenses, Total Sales, Profit, Notes, Submitted By, Timestamp]
     const today = new Date();
 
     // --- Monthly totals ---
@@ -196,11 +207,11 @@ export async function GET(request: Request) {
       const thisMonth = today.getMonth();
       const thisYear = today.getFullYear();
 
-      let totalTraysSold = 0;
-      let totalSales    = 0;
+      let totalMeatSold = 0;
+      let totalSales = 0;
       let totalExpenses = 0;
-      let totalDamaged  = 0;
-      let netProfit     = 0;
+      let totalDamaged = 0;
+      let netProfit = 0;
 
       for (const row of dataRows) {
         const rowDate = new Date(row[0]);
@@ -209,16 +220,16 @@ export async function GET(request: Request) {
           rowDate.getMonth() === thisMonth &&
           rowDate.getFullYear() === thisYear
         ) {
-          totalTraysSold += parseNum(row[3]);
-          totalSales += parseNum(row[7]);
-          totalExpenses += parseNum(row[6]);
-          totalDamaged  += parseNum(row[5]);
-          netProfit     += parseNum(row[8]);
+          totalMeatSold += parseNum(row[2]);
+          totalSales += parseNum(row[7]); // Updated index
+          totalExpenses += parseNum(row[6]); // Butcher Exp
+          totalDamaged += parseNum(row[4]);
+          netProfit += parseNum(row[8]); // Updated index
         }
       }
 
       return NextResponse.json({
-        totalTraysSold,
+        totalMeatSold,
         totalSales,
         totalExpenses,
         totalDamaged,
@@ -236,30 +247,28 @@ export async function GET(request: Request) {
         return !isNaN(rowDate.getTime()) && rowDate >= cutoff30;
       })
       .map((row) => ({
-        date:             row[0]  ?? '',
-        location:         row[1]  ?? '',
-        traysReceived:    parseNum(row[2]),
-        traysSold:        parseNum(row[3]),
-        pricePerTray:     parseNum(row[4]),
-        damagedTrays:     parseNum(row[5]),
-        expenses:         parseNum(row[6]),
-        totalSales:       parseNum(row[7]),
-        traysLeft:        parseNum(row[8]),
-        profit:           parseNum(row[9]),
-        notes:            row[10] ?? '',
-        financeExpenses:  parseNum(row[11]),
-        submittedBy:      row[12] ?? '',
-        timestamp:        row[13] ?? '',
+        date: row[0] ?? '',
+        meatReceived: parseNum(row[1]),
+        meatSold: parseNum(row[2]),
+        pricePerKg: parseNum(row[3]),
+        damaged: parseNum(row[4]),
+        stockLeft: parseNum(row[5]),
+        expenses: parseNum(row[6]),
+        totalSales: parseNum(row[7]),
+        profit: parseNum(row[8]),
+        notes: row[9] ?? '',
+        submittedBy: row[10] ?? '',
+        timestamp: row[11] ?? '',
       }))
       .sort(
         (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
       );
 
     return NextResponse.json({ success: true, data: recent });
-  } catch (error: unknown) {
-    console.error('API Error in egg-kiosk/route.ts [GET]:', error);
+  } catch (error: any) {
+    console.error('API Error in butcher/route.ts [GET]:', error);
     return NextResponse.json(
-      { error: 'Internal Server Error' },
+      { success: false, error: error.message || 'Internal Server Error' },
       { status: 500 }
     );
   }

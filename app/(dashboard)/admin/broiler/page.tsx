@@ -63,7 +63,7 @@ export default function AdminBroilerFarmPage() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `30plus-admin-broiler-farm.csv`;
+    a.download = `muveste-admin-broiler-farm.csv`;
     a.click();
     URL.revokeObjectURL(url);
   };

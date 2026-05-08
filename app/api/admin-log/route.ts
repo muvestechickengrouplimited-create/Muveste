@@ -2,15 +2,21 @@ import { NextResponse } from 'next/server';
 import { getRows, prependRow } from '../../../lib/sheets';
 import * as admin from 'firebase-admin';
 
+export const dynamic = 'force-dynamic';
+
 // Initialize Firebase Admin using environment variables if not already initialized
 if (!admin.apps.length) {
-  admin.initializeApp({
-    credential: admin.credential.cert({
-      projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-      clientEmail: process.env.FIREBASE_SERVICE_ACCOUNT_EMAIL || process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
-      privateKey: (process.env.FIREBASE_PRIVATE_KEY || process.env.GOOGLE_PRIVATE_KEY)?.replace(/\\n/g, '\n'),
-    }),
-  });
+  try {
+    admin.initializeApp({
+      credential: admin.credential.cert({
+        projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+        clientEmail: process.env.FIREBASE_SERVICE_ACCOUNT_EMAIL || process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
+        privateKey: (process.env.FIREBASE_PRIVATE_KEY || process.env.GOOGLE_PRIVATE_KEY)?.replace(/\\n/g, '\n'),
+      }),
+    });
+  } catch (err) {
+    console.warn("Firebase Admin failed to initialize during static generation:", err);
+  }
 }
 
 // GET route to fetch the activity log for the admin dashboard
@@ -30,9 +36,9 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Unauthorized: Invalid token' }, { status: 401 });
     }
 
-    const userEmail = decodedToken.email;
+    const userEmail = decodedToken.email?.toLowerCase();
     // Security Rule: Only Admin can read the widespread activity log
-    if (userEmail?.toLowerCase() !== 'admin@30plus.rw') {
+    if (userEmail !== 'admin@muveste.com') {
        return NextResponse.json({ error: 'Forbidden: Admin access required to view logs' }, { status: 403 });
     }
 

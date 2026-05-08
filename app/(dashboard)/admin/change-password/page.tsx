@@ -5,12 +5,12 @@ import { auth } from '../../../../lib/firebase';
 import { useRouter } from 'next/navigation';
 
 const STAFF_ACCOUNTS = [
-  { email: 'eggfarm@30plus.rw', label: 'Egg Farm' },
-  { email: 'broiler@30plus.rw', label: 'Broiler Farm' },
-  { email: 'eggkiosk@30plus.rw', label: 'Egg Kiosk' },
-  { email: 'butcher@30plus.rw', label: 'Butchery' },
-  { email: 'finance@30plus.rw', label: 'Finance' },
-  { email: 'admin@30plus.rw', label: 'Admin (Your Account)' }
+  { email: 'broiler@muveste.com', label: 'Broiler Farm' },
+  { email: 'butchery-kibungo@muveste.com', label: 'Butchery (Kibungo)' },
+  { email: 'butchery-rwamagana@muveste.com', label: 'Butchery (Rwamagana)' },
+  { email: 'butchery-nyabugogo@muveste.com', label: 'Butchery (Nyabugogo)' },
+  { email: 'finance@muveste.com', label: 'Finance' },
+  { email: 'admin@muveste.com', label: 'Admin (Your Account)' }
 ];
 
 export default function AdminChangePassword() {

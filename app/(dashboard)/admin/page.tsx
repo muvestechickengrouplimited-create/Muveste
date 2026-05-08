@@ -105,6 +105,11 @@ function StatCard({ title, value, color, sub }: { title: string; value: string; 
   );
 }
 
+// ─── Skeleton ────────────────────────────────────────────────────────────────
+const Skeleton = ({ className }: { className?: string }) => (
+  <div className={`animate-pulse bg-gray-200/60 rounded-xl ${className}`} />
+);
+
 // ─── Status Pill ────────────────────────────────────────────────────────────
 function StatusPill({ status }: { status: 'Active' | 'Pending' }) {
   return (
@@ -170,6 +175,7 @@ function DeptSummaryCard({ dept, onClick }: { dept: DeptSummary; onClick: () => 
 // ═══════════════════════════════════════════════════════════════════════════
 export default function AdminOverview() {
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [departments, setDepartments] = useState<DeptSummary[]>([]);
   const [totalRevenue, setTotalRevenue] = useState(0);
   const [totalExpenses, setTotalExpenses] = useState(0);
@@ -180,6 +186,7 @@ export default function AdminOverview() {
   const [allFinanceRows, setAllFinanceRows] = useState<FinanceRow[]>([]);
   const [availableYears, setAvailableYears] = useState<number[]>([new Date().getFullYear()]);
   const [loadingMonthly, setLoadingMonthly] = useState(false);
+  const [errorMonthly, setErrorMonthly] = useState<string | null>(null);
 
   // Modal state
   const [selectedDept, setSelectedDept] = useState<string | null>(null);
@@ -239,26 +246,38 @@ export default function AdminOverview() {
 
   // ─── Fetch overview data ────────────────────────────────────────────────
   const fetchData = useCallback(async () => {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 8000);
     try {
       setLoading(true);
+      setError(null);
       const token = await auth.currentUser?.getIdToken();
-      if (!token) return;
+      if (!token) {
+        clearTimeout(timeout);
+        return;
+      }
 
       // Fetch overview and logs in parallel
       const [res, logRes, kioskRawRes, batchesRes] = await Promise.all([
         fetch(`/api/admin/overview?period=daily`, {
           headers: { Authorization: `Bearer ${token}` },
+          signal: controller.signal,
         }),
         fetch(`/api/admin/department?dept=admin-log`, {
           headers: { Authorization: `Bearer ${token}` },
+          signal: controller.signal,
         }),
         fetch(`/api/admin/department?dept=egg-kiosk`, {
           headers: { Authorization: `Bearer ${token}` },
+          signal: controller.signal,
         }),
         fetch(`/api/admin/batches`, {
           headers: { Authorization: `Bearer ${token}` },
+          signal: controller.signal,
         })
       ]);
+
+      clearTimeout(timeout);
 
       const batchesData = batchesRes.ok ? await batchesRes.json() : [];
       setBatches(batchesData);
@@ -418,7 +437,9 @@ export default function AdminOverview() {
 
 
     } catch (err) {
+      clearTimeout(timeout);
       console.error(err);
+      setError('Failed to fetch dashboard data. Please refresh.');
     } finally {
       setLoading(false);
     }
@@ -428,14 +449,24 @@ export default function AdminOverview() {
     fetchData();
   }, [fetchData]);
 
-  // ─── Fetch all finance data ────────────────────────────────────────────────
   const fetchAllFinanceData = useCallback(async () => {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 8000);
     try {
       setLoadingMonthly(true);
+      setErrorMonthly(null);
       const token = await auth.currentUser?.getIdToken();
-      if (!token) return;
+      if (!token) {
+        clearTimeout(timeout);
+        return;
+      }
 
-      const res = await fetch(`/api/finance`, { headers: { Authorization: `Bearer ${token}` } });
+      const res = await fetch(`/api/finance`, {
+        headers: { Authorization: `Bearer ${token}` },
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeout);
 
       if (res.ok) {
         const json = await res.json();
@@ -454,7 +485,9 @@ export default function AdminOverview() {
         setAvailableYears(Array.from(years).sort((a, b) => b - a));
       }
     } catch (err) {
+      clearTimeout(timeout);
       console.error(err);
+      setErrorMonthly('Failed to fetch monthly data. Please refresh.');
     } finally {
       setLoadingMonthly(false);
     }
@@ -618,9 +651,39 @@ export default function AdminOverview() {
         <p className="text-[#111827] opacity-70 text-base">Super Administrator Dashboard</p>
       </div>
 
-      {loading ? (
-        <div className="h-40 flex items-center justify-center bg-white rounded-2xl shadow-sm border border-gray-100">
-          <div className="animate-spin rounded-full h-8 w-8 border-4 border-[#1B6B3A] border-t-transparent" />
+      {error ? (
+        <div className="bg-red-50 border-2 border-red-200 rounded-2xl p-6 text-center max-w-xl mx-auto my-8">
+          <p className="text-red-700 font-bold text-lg mb-2">Something went wrong</p>
+          <p className="text-red-600 text-sm mb-4">{error}</p>
+          <button
+            onClick={() => fetchData()}
+            className="bg-red-600 hover:bg-red-700 text-white font-semibold px-6 py-2.5 rounded-xl transition duration-150 shadow-sm"
+          >
+            Retry Connection
+          </button>
+        </div>
+      ) : loading ? (
+        <div className="space-y-6">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <Skeleton className="h-28" />
+            <Skeleton className="h-28" />
+            <Skeleton className="h-28" />
+            <Skeleton className="h-28" />
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="lg:col-span-2 space-y-4">
+              <Skeleton className="h-8 w-48" />
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                <Skeleton className="h-44" />
+                <Skeleton className="h-44" />
+                <Skeleton className="h-44" />
+              </div>
+            </div>
+            <div className="space-y-4">
+              <Skeleton className="h-8 w-48" />
+              <Skeleton className="h-80" />
+            </div>
+          </div>
         </div>
       ) : (
         <>
@@ -636,7 +699,7 @@ export default function AdminOverview() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div className="lg:col-span-2">
               <h2 className="text-xl font-bold text-[#111827] mb-4">Department Performance</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {departments.map(dept => (
                   <DeptSummaryCard key={dept.name} dept={dept} onClick={() => openModal(dept.name)} />
                 ))}
@@ -739,7 +802,7 @@ export default function AdminOverview() {
             <h2 className="text-xl font-bold text-[#111827] mb-4">Monthly Performance</h2>
 
             {/* Year Tabs */}
-            <div className="flex overflow-x-auto pb-2 mb-4 gap-3 scrollbar-none">
+            <div className="flex flex-row flex-nowrap overflow-x-auto pb-2 mb-4 -mx-4 px-4 gap-3 scrollbar-none">
               {availableYears.map(year => {
                 const isSelected = selectedYear === year;
                 return (
@@ -758,7 +821,7 @@ export default function AdminOverview() {
             </div>
 
             {/* Nav Tabs */}
-            <div className="flex overflow-x-auto pb-2 mb-4 gap-2 scrollbar-none">
+            <div className="flex flex-row flex-nowrap overflow-x-auto pb-2 mb-4 -mx-4 px-4 gap-2 scrollbar-none">
               {[
                 { label: 'January', val: 0 }, { label: 'February', val: 1 },
                 { label: 'March', val: 2 }, { label: 'April', val: 3 },
@@ -785,10 +848,30 @@ export default function AdminOverview() {
 
             {(() => {
 
+              if (errorMonthly) {
+                return (
+                  <div className="bg-red-50 border-2 border-red-200 rounded-2xl p-6 text-center max-w-xl mx-auto my-4 shadow-sm">
+                    <p className="text-red-700 font-bold mb-1">Failed to load monthly financials</p>
+                    <p className="text-red-600 text-xs mb-3">{errorMonthly}</p>
+                    <button
+                      onClick={() => fetchAllFinanceData()}
+                      className="bg-red-600 hover:bg-red-700 text-white font-semibold px-4 py-1.5 rounded-lg text-xs transition duration-150"
+                    >
+                      Retry Load
+                    </button>
+                  </div>
+                );
+              }
+
               if (loadingMonthly) {
                 return (
-                  <div className="h-40 flex items-center justify-center bg-white rounded-2xl shadow-sm border border-gray-100">
-                    <div className="animate-spin rounded-full h-8 w-8 border-4 border-[#1B6B3A] border-t-transparent" />
+                  <div className="space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <Skeleton className="h-28" />
+                      <Skeleton className="h-28" />
+                      <Skeleton className="h-28" />
+                    </div>
+                    <Skeleton className="h-44 w-full" />
                   </div>
                 );
               }
@@ -875,9 +958,9 @@ export default function AdminOverview() {
 
       {/* ═══ SECTION 3 — DETAIL MODAL ═══ */}
       {selectedDept && (
-        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4"
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-0 md:p-4"
           onClick={closeModal}>
-          <div className="bg-white rounded-2xl w-full max-w-lg overflow-hidden shadow-xl animate-in"
+          <div className="bg-white rounded-none md:rounded-2xl w-full h-full md:h-auto md:max-w-lg overflow-hidden shadow-xl animate-in flex flex-col"
             onClick={e => e.stopPropagation()}
             style={{ animation: 'modalIn 0.2s ease-out' }}>
 
@@ -889,13 +972,15 @@ export default function AdminOverview() {
                 <p className="text-white/70 text-xs mt-0.5">Today, {formattedDate}</p>
               </div>
               <button onClick={closeModal}
-                className="text-white bg-white/20 rounded-lg px-3 py-1 text-sm hover:bg-white/30 transition">
-                Close
+                className="text-white bg-white/20 hover:bg-white/30 rounded-full w-10 h-10 flex items-center justify-center transition shrink-0"
+                aria-label="Close"
+              >
+                <span className="text-xl">✕</span>
               </button>
             </div>
 
             {/* Modal body */}
-            <div className="p-6 space-y-5 max-h-[70vh] overflow-y-auto">
+            <div className="p-6 space-y-5 flex-1 overflow-y-auto md:max-h-[70vh]">
 
               {/* Loading state */}
               {!deptDetails && (

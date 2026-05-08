@@ -35,7 +35,7 @@ export default function AdminbutcherPage() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `30plus-admin-butcher.csv`;
+    a.download = `muveste-admin-butcher.csv`;
     a.click();
     URL.revokeObjectURL(url);
   };

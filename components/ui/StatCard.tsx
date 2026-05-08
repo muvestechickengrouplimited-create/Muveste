@@ -27,19 +27,19 @@ export function StatCard({ title, value, icon, color, trend, className }: StatCa
   const colorClasses = color ? colorMap[color] : 'bg-[#EAF5EE] text-[#1B6B3A]';
 
   return (
-    <Card className={cn('overflow-hidden', className)}>
-      <CardContent className="p-6">
+    <Card className={cn('overflow-hidden min-h-[100px]', className)}>
+      <CardContent className="p-4 md:p-6">
         <div className="flex items-start justify-between space-x-4">
           <div className="flex flex-col space-y-2">
             <p className="text-sm font-medium text-gray-500">{title}</p>
             <div className="flex items-baseline space-x-2">
-              <h2 className="text-3xl font-bold tracking-tight text-[#111827] font-mono-numbers">
+              <h2 className="text-2xl md:text-3xl font-bold tracking-tight text-[#111827] font-mono-numbers">
                 {value}
               </h2>
             </div>
           </div>
           {icon && (
-            <div className={cn('flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full', colorClasses)}>
+            <div className={cn('flex h-10 w-10 md:h-12 md:w-12 flex-shrink-0 items-center justify-center rounded-full', colorClasses)}>
               {icon}
             </div>
           )}

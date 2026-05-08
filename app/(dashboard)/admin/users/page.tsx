@@ -2,12 +2,10 @@ import React from 'react';
 import { Card } from '../../../../components/ui/Card';
 
 const USERS = [
-  { date: '2026-03-01', dept: 'Egg Farm', email: 'eggfarm@30plus.rw', role: 'egg_farm' },
-  { date: '2026-03-01', dept: 'Broiler Farm', email: 'broiler@30plus.rw', role: 'broiler_farm' },
-  { date: '2026-03-01', dept: 'Egg Kiosk', email: 'eggkiosk@30plus.rw', role: 'egg_kiosk' },
-  { date: '2026-03-01', dept: 'butcher', email: 'butcher@30plus.rw', role: 'butcher' },
-  { date: '2026-03-01', dept: 'Finance', email: 'finance@30plus.rw', role: 'finance' },
-  { date: '2026-03-01', dept: 'Admin', email: 'admin@30plus.rw', role: 'admin' }
+  { date: '2026-03-01', dept: 'Broiler Farm', email: 'broiler@muveste.com', role: 'broiler_farm' },
+  { date: '2026-03-01', dept: 'Butchery', email: 'butchery@muveste.com', role: 'butcher' },
+  { date: '2026-03-01', dept: 'Finance', email: 'finance@muveste.com', role: 'finance' },
+  { date: '2026-03-01', dept: 'Admin', email: 'admin@muveste.com', role: 'admin' }
 ];
 
 export default function AdminUsersPage() {

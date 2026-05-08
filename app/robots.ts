@@ -8,14 +8,16 @@ export default function robots():
       allow: '/',
       disallow: [
         '/login',
-        '/egg-farm',
-        '/broiler-farm',
-        '/egg-kiosk',
-        '/butcher',
-        '/finance',
         '/admin',
+        '/finance',
+        '/broiler-farm',
+        '/butcher-kibungo',
+        '/butcher-rwamagana',
+        '/butcher-nyabugogo',
+        '/settings',
+        '/api/',
       ],
     },
-    sitemap: 'https://30plus.rw/sitemap.xml',
+    sitemap: 'https://muveste.rw/sitemap.xml',
   }
 }

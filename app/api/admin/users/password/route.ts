@@ -1,17 +1,16 @@
 import { NextResponse } from 'next/server';
 import * as admin from 'firebase-admin';
 
-if (!admin.apps.length) {
-  admin.initializeApp({
-    credential: admin.credential.cert({
-      projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-      clientEmail: process.env.FIREBASE_SERVICE_ACCOUNT_EMAIL || process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
-      privateKey: (process.env.FIREBASE_PRIVATE_KEY || process.env.GOOGLE_PRIVATE_KEY)?.replace(/\\n/g, '\n'),
-    }),
-  });
-}
-
 export async function POST(request: Request) {
+  if (!admin.apps.length) {
+    admin.initializeApp({
+      credential: admin.credential.cert({
+        projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+        clientEmail: process.env.FIREBASE_SERVICE_ACCOUNT_EMAIL || process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
+        privateKey: (process.env.FIREBASE_PRIVATE_KEY || process.env.GOOGLE_PRIVATE_KEY)?.replace(/\\n/g, '\n'),
+      }),
+    });
+  }
   try {
     const authHeader = request.headers.get('Authorization');
     if (!authHeader?.startsWith('Bearer ')) {
@@ -21,7 +20,8 @@ export async function POST(request: Request) {
     const token = await admin.auth().verifyIdToken(authHeader.split('Bearer ')[1]);
     
     // STRICT SECURITY: Only the admin can do this
-    if (token.email?.toLowerCase() !== 'admin@30plus.rw') {
+    const tokenEmail = token.email?.toLowerCase();
+    if (tokenEmail !== 'admin@muveste.com') {
       return NextResponse.json({ error: 'Forbidden. Only admin can change passwords.' }, { status: 403 });
     }
 

@@ -3,15 +3,21 @@ import { getRows } from '../../../../lib/sheets';
 import * as admin from 'firebase-admin';
 import { google } from 'googleapis';
 
+export const dynamic = 'force-dynamic';
+
 // Initialize Firebase Admin
 if (!admin.apps.length) {
-  admin.initializeApp({
-    credential: admin.credential.cert({
-      projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-      clientEmail: process.env.FIREBASE_SERVICE_ACCOUNT_EMAIL || process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
-      privateKey: (process.env.FIREBASE_PRIVATE_KEY || process.env.GOOGLE_PRIVATE_KEY)?.replace(/\\n/g, '\n'),
-    }),
-  });
+  try {
+    admin.initializeApp({
+      credential: admin.credential.cert({
+        projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+        clientEmail: process.env.FIREBASE_SERVICE_ACCOUNT_EMAIL || process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
+        privateKey: (process.env.FIREBASE_PRIVATE_KEY || process.env.GOOGLE_PRIVATE_KEY)?.replace(/\\n/g, '\n'),
+      }),
+    });
+  } catch (err) {
+    console.warn("Firebase Admin failed to initialize during static generation:", err);
+  }
 }
 
 function getAuth() {
@@ -30,9 +36,7 @@ function parseNum(val: unknown): number {
 }
 
 const SHEET_COLS: Record<string, { rev: number; exp: number }> = {
-  'egg-farm': { rev: 13, exp: 12 },
   'broiler-farm': { rev: 14, exp: 13 },
-  'egg-kiosk': { rev: 7, exp: 6 },
   'butcher': { rev: 7, exp: 6 },
 };
 
@@ -66,18 +70,8 @@ async function getDepartmentTotals(sheetName: string, targetDate: string) {
     const dayRows = dataRows.filter(r => normalizeDate(r[0]) === normalizedTarget);
 
     for (const row of dayRows) {
-      if (sheetName === 'egg-farm') {
-        const isBirdsSoldFmt = row.length >= 27;
-        const isDoubleStockFmt = row.length === 26 || row.length === 25;
-        const isProfitFmt = row.length === 24;
-        const isNewest = row.length === 23;
-        const isInter = row.length === 22;
-        rev += parseNum(row[isBirdsSoldFmt ? 22 : (isDoubleStockFmt ? 20 : (isProfitFmt ? 19 : (isNewest ? 19 : (isInter ? 18 : 13))))]);
-        exp += parseNum(row[isBirdsSoldFmt ? 21 : (isDoubleStockFmt ? 19 : (isProfitFmt ? 18 : (isNewest ? 18 : (isInter ? 17 : 12))))]);
-      } else {
-        rev += parseNum(row[SHEET_COLS[sheetName].rev]);
-        exp += parseNum(row[SHEET_COLS[sheetName].exp]);
-      }
+      rev += parseNum(row[SHEET_COLS[sheetName].rev]);
+      exp += parseNum(row[SHEET_COLS[sheetName].exp]);
     }
     
     return { revenue: rev, expenses: exp, rows: dayRows };
@@ -120,8 +114,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Unauthorized: Invalid token' }, { status: 401 });
     }
 
-    const userEmail = decodedToken.email;
-    if (!userEmail || (userEmail.toLowerCase() !== 'finance@30plus.rw' && userEmail.toLowerCase() !== 'admin@30plus.rw')) {
+    const userEmail = decodedToken.email?.toLowerCase();
+    const isAuthorized = userEmail && (
+      userEmail === 'finance@muveste.com' ||
+      userEmail === 'admin@muveste.com'
+    );
+    if (!isAuthorized) {
       return NextResponse.json({ error: 'Forbidden: Finance access required' }, { status: 403 });
     }
 

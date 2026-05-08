@@ -47,13 +47,13 @@ function validate(fields: {
 
 // ─── Input helper ────────────────────────────────────────────────────────────
 const inputClass =
-  'flex h-11 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm ' +
+  'flex h-12 md:h-11 w-full rounded-lg border border-gray-300 bg-white px-4 py-3 md:px-3 md:py-2 text-base md:text-sm ' +
   'text-[#111827] focus-visible:outline-none focus-visible:ring-2 ' +
   'focus-visible:ring-[#F5C518] focus-visible:ring-offset-2 transition-colors ' +
   'placeholder:text-gray-400';
 
 // ─── Component ───────────────────────────────────────────────────────────────
-function ButcherForm() {
+function ButcherKibungoForm() {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   const router = useRouter();
@@ -93,7 +93,7 @@ function ButcherForm() {
       try {
         const token = await auth.currentUser?.getIdToken();
         if (!token) return;
-        const res = await fetch('/api/butcher', {
+        const res = await fetch('/api/butcher-kibungo', {
           headers: { Authorization: `Bearer ${token}` }
         });
         if (res.ok) {
@@ -170,7 +170,7 @@ function ButcherForm() {
         notes: fields.notes,
       };
 
-      const res = await fetch('/api/butcher', {
+      const res = await fetch('/api/butcher-kibungo', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -187,7 +187,7 @@ function ButcherForm() {
       
       // Right after submit, re-fetch the previous stock so the new submission reflects as the next day's starting stock.
       try {
-        const fetchRes = await fetch('/api/butcher', {
+        const fetchRes = await fetch('/api/butcher-kibungo', {
           headers: { Authorization: `Bearer ${token}` }
         });
         if (fetchRes.ok) {
@@ -215,7 +215,7 @@ function ButcherForm() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Butchery Form</CardTitle>
+        <CardTitle>Butchery — Kibungo Form</CardTitle>
         <CardDescription>
           Enter today's meat received, sales, damaged meat, and expenses.
           Total Sales and Profit are auto-calculated in real time.
@@ -430,17 +430,19 @@ function ButcherForm() {
           </div>
 
           {/* ── Submit ────────────────────────────────────────────────── */}
-          <Button
-            type="submit"
-            className="w-full md:w-auto text-base h-12"
-            isLoading={isLoading}
-          >
-            Submit Daily Report
-          </Button>
+          <div className="sticky bottom-4 md:relative w-full md:w-auto z-10">
+            <Button
+              type="submit"
+              className="w-full text-base h-[52px] text-[15px]"
+              isLoading={isLoading}
+            >
+              Submit Daily Report
+            </Button>
+          </div>
         </form>
       </CardContent>
     </Card>
   );
 }
 
-export default ButcherForm;
+export default ButcherKibungoForm;

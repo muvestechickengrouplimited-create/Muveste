@@ -4,15 +4,21 @@ import { formatDate, formatTime } from '../../../lib/utils';
 import * as admin from 'firebase-admin';
 import { google } from 'googleapis';
 
+export const dynamic = 'force-dynamic';
+
 // Initialize Firebase Admin
 if (!admin.apps.length) {
-  admin.initializeApp({
-    credential: admin.credential.cert({
-      projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-      clientEmail: process.env.FIREBASE_SERVICE_ACCOUNT_EMAIL || process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
-      privateKey: (process.env.FIREBASE_PRIVATE_KEY || process.env.GOOGLE_PRIVATE_KEY)?.replace(/\\n/g, '\n'),
-    }),
-  });
+  try {
+    admin.initializeApp({
+      credential: admin.credential.cert({
+        projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+        clientEmail: process.env.FIREBASE_SERVICE_ACCOUNT_EMAIL || process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
+        privateKey: (process.env.FIREBASE_PRIVATE_KEY || process.env.GOOGLE_PRIVATE_KEY)?.replace(/\\n/g, '\n'),
+      }),
+    });
+  } catch (err) {
+    console.warn("Firebase Admin failed to initialize during static generation:", err);
+  }
 }
 
 // ─── Helper ────────────────────────────────────────────────────────────────
@@ -42,18 +48,6 @@ function normalizeDate(val: unknown): string {
   const month = String(d.getMonth() + 1).padStart(2, '0');
   const day = String(d.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
-}
-
-// Helper: get egg-farm revenue/expenses for a single row
-function getEfValues(r: string[]) {
-  const isBirdsSoldFmt = r.length >= 27;
-  const isDoubleStockFmt = r.length === 26 || r.length === 25;
-  const isProfitFmt = r.length === 24;
-  const isNewest = r.length === 23;
-  const isInter = r.length === 22;
-  const rev = parseNum(r[isBirdsSoldFmt ? 22 : (isDoubleStockFmt ? 20 : (isProfitFmt ? 19 : (isNewest ? 19 : (isInter ? 18 : 13))))]);
-  const exp = parseNum(r[isBirdsSoldFmt ? 21 : (isDoubleStockFmt ? 19 : (isProfitFmt ? 18 : (isNewest ? 18 : (isInter ? 17 : 12))))]);
-  return { rev, exp };
 }
 
 // ─── GET — Fetch data ──────────────────────────────────────────────────────
@@ -95,49 +89,46 @@ export async function GET(request: Request) {
     if (date) {
       const normalizedDate = normalizeDate(date);
 
-      const [efAllRows, ekAllRows, buAllRows, finExpAllRows] = await Promise.all([
-        getRows('egg-farm'),
-        getRows('egg-kiosk'),
-        getRows('butcher'),
+      const [bkAllRows, brAllRows, bnAllRows, finExpAllRows] = await Promise.all([
+        getRows('butcher-kibungo'),
+        getRows('butcher-rwamagana'),
+        getRows('butcher-nyabugogo'),
         getRows('finance-expenses'),
       ]);
 
-      const efData = (efAllRows || []).slice(1);
-      const ekData = (ekAllRows || []).slice(1);
-      const buData = (buAllRows || []).slice(1);
+      const bkData = (bkAllRows || []).slice(1);
+      const brData = (brAllRows || []).slice(1);
+      const bnData = (bnAllRows || []).slice(1);
       const finExpData = (finExpAllRows || []).slice(1);
-
-      // Egg Farm
-      const efDayRows = efData.filter(r => normalizeDate(r[0]) === normalizedDate);
-      let efRev = 0, efExp = 0;
-      for (const r of efDayRows) { const v = getEfValues(r); efRev += v.rev; efExp += v.exp; }
 
       // Broiler — per batch
       const bfDayRows = bfData.filter(r => normalizeDate(r[0]) === normalizedDate);
       const broilerByBatch = batchTotals(bfDayRows);
 
-      // Egg Kiosk
-      const ekDayRows = ekData.filter(r => normalizeDate(r[0]) === normalizedDate);
-      const batRow = ekDayRows.find(r => String(r[1] || '').includes('Batsinda'));
-      const nyaRow = ekDayRows.find(r => String(r[1] || '').includes('Nyabugogo'));
-
       // Butcher
-      const buDayRows = buData.filter(r => normalizeDate(r[0]) === normalizedDate);
-      let buRev = 0, buExp = 0;
-      for (const r of buDayRows) { buRev += parseNum(r[7]); buExp += parseNum(r[6]); }
+      const bkDayRows = bkData.filter(r => normalizeDate(r[0]) === normalizedDate);
+      const brDayRows = brData.filter(r => normalizeDate(r[0]) === normalizedDate);
+      const bnDayRows = bnData.filter(r => normalizeDate(r[0]) === normalizedDate);
+      let bkRev = 0, bkExp = 0, brRev = 0, brExp = 0, bnRev = 0, bnExp = 0;
+      for (const r of bkDayRows) { bkRev += parseNum(r[7]); bkExp += parseNum(r[6]); }
+      for (const r of brDayRows) { brRev += parseNum(r[7]); brExp += parseNum(r[6]); }
+      for (const r of bnDayRows) { bnRev += parseNum(r[7]); bnExp += parseNum(r[6]); }
+      const buRev = bkRev + brRev + bnRev;
+      const buExp = bkExp + brExp + bnExp;
 
       // Finance extras
       const dayFinExps = finExpData.filter(r => normalizeDate(r[0]) === normalizedDate);
-      const dayExtras: Record<string, number> = { ef: 0, bu: 0, kBat: 0, kNya: 0, bf: 0 };
+      const dayExtras: Record<string, number> = { bk: 0, br: 0, bn: 0, bf: 0 };
       // Per-batch extras (keyed by batch name)
       const batchExtras: Record<string, number> = {};
       for (const name of allBatchNames) batchExtras[name] = 0;
 
       // Build dynamic DEPT_KEY_MAP that includes per-batch entries
       const DEPT_KEY_MAP: Record<string, string> = {
-        'egg farm': 'ef', 'broiler farm': 'bf',
-        'kiosk batsinda': 'kBat', 'kiosk nyabugogo': 'kNya',
-        'butchery': 'bu', 'butcher': 'bu',
+        'broiler farm': 'bf',
+        'butchery kibungo': 'bk', 'butchery - kibungo': 'bk', 'butchery — kibungo': 'bk',
+        'butchery rwamagana': 'br', 'butchery - rwamagana': 'br', 'butchery — rwamagana': 'br',
+        'butchery nyabugogo': 'bn', 'butchery - nyabugogo': 'bn', 'butchery — nyabugogo': 'bn',
       };
       // Add per-batch mappings: "broiler — batch a" → batch key
       for (const name of allBatchNames) {
@@ -167,10 +158,9 @@ export async function GET(request: Request) {
       // NOTE: tracker values contain ONLY base dept expenses (no finance extras)
       // so the frontend can display and sum them separately without double-counting.
       const tracker: Record<string, { value: number; submitted: boolean }> = {
-        'Egg Farm': { value: efExp, submitted: efDayRows.length > 0 },
-        'Kiosk Batsinda': { value: batRow ? parseNum(batRow[6]) : 0, submitted: !!batRow },
-        'Kiosk Nyabugogo': { value: nyaRow ? parseNum(nyaRow[6]) : 0, submitted: !!nyaRow },
-        'Butchery': { value: buExp, submitted: buDayRows.length > 0 },
+        'Butchery Kibungo': { value: bkExp, submitted: bkDayRows.length > 0 },
+        'Butchery Rwamagana': { value: brExp, submitted: brDayRows.length > 0 },
+        'Butchery Nyabugogo': { value: bnExp, submitted: bnDayRows.length > 0 },
       };
 
       // Build data object (flat broiler-farm total kept for backwards compat)
@@ -188,28 +178,20 @@ export async function GET(request: Request) {
         };
       }
 
-      const kBatRev = batRow ? parseNum(batRow[7]) : 0;
-      const kBatExp = (batRow ? parseNum(batRow[6]) : 0) + dayExtras.kBat;
-      const kNyaRev = nyaRow ? parseNum(nyaRow[7]) : 0;
-      const kNyaExp = (nyaRow ? parseNum(nyaRow[6]) : 0) + dayExtras.kNya;
-
-      const totalRevenue = efRev + bfTotalRev + kBatRev + kNyaRev + buRev;
-      const totalExpenses = (efExp + dayExtras.ef) + bfTotalExp + kBatExp + kNyaExp + (buExp + dayExtras.bu);
+      const totalRevenue = bfTotalRev + buRev;
+      const totalExpenses = bfTotalExp + (bkExp + dayExtras.bk) + (brExp + dayExtras.br) + (bnExp + dayExtras.bn);
 
       return NextResponse.json({
         date: normalizedDate,
         batches: allBatchNames,
         data: {
-          eggFarmRevenue: efRev,
-          eggFarmExpenses: efExp + dayExtras.ef,
           broilerRevenue: bfTotalRev,
           broilerExpenses: bfTotalExp + dayExtras.bf,
-          kioskBatsindaRevenue: kBatRev,
-          kioskBatsindaExpenses: kBatExp,
-          kioskNyabugogoRevenue: kNyaRev,
-          kioskNyabugogoExpenses: kNyaExp,
           butcherRevenue: buRev,
-          butcherExpenses: buExp + dayExtras.bu,
+          butcherExpenses: buExp + (dayExtras.bk + dayExtras.br + dayExtras.bn),
+          kibungoRevenue: bkRev, kibungoExpenses: bkExp + dayExtras.bk,
+          rwamaganaRevenue: brRev, rwamaganaExpenses: brExp + dayExtras.br,
+          nyabugogoRevenue: bnRev, nyabugogoExpenses: bnExp + dayExtras.bn,
           ...batchData,
         },
         tracker,
@@ -218,31 +200,32 @@ export async function GET(request: Request) {
     }
 
     // ── 2. All / monthly records ──────────────────────────────────────────
-    const [efAllRows, ekAllRows, buAllRows, finExpAllRows] = await Promise.all([
-      getRows('egg-farm'),
-      getRows('egg-kiosk'),
-      getRows('butcher'),
+    const [bkAllRows, brAllRows, bnAllRows, finExpAllRows] = await Promise.all([
+      getRows('butcher-kibungo'),
+      getRows('butcher-rwamagana'),
+      getRows('butcher-nyabugogo'),
       getRows('finance-expenses'),
     ]);
 
-    const efData = (efAllRows || []).slice(1);
-    const ekData = (ekAllRows || []).slice(1);
-    const buData = (buAllRows || []).slice(1);
+    const bkData = (bkAllRows || []).slice(1);
+    const brData = (brAllRows || []).slice(1);
+    const bnData = (bnAllRows || []).slice(1);
     const finExpData = (finExpAllRows || []).slice(1);
 
     // Collect all unique dates
     const allDates = new Set<string>();
-    for (const r of efData) { const d = normalizeDate(r[0]); if (d) allDates.add(d); }
     for (const r of bfData) { const d = normalizeDate(r[0]); if (d) allDates.add(d); }
-    for (const r of ekData) { const d = normalizeDate(r[0]); if (d) allDates.add(d); }
-    for (const r of buData) { const d = normalizeDate(r[0]); if (d) allDates.add(d); }
+    for (const r of bkData) { const d = normalizeDate(r[0]); if (d) allDates.add(d); }
+    for (const r of brData) { const d = normalizeDate(r[0]); if (d) allDates.add(d); }
+    for (const r of bnData) { const d = normalizeDate(r[0]); if (d) allDates.add(d); }
     for (const r of finExpData) { const d = normalizeDate(r[0]); if (d) allDates.add(d); }
 
     // Build dynamic DEPT_KEY_MAP including per-batch entries
     const DEPT_KEY_MAP: Record<string, string> = {
-      'egg farm': 'ef', 'broiler farm': 'bf',
-      'kiosk batsinda': 'kBat', 'kiosk nyabugogo': 'kNya',
-      'butchery': 'bu', 'butcher': 'bu',
+      'broiler farm': 'bf',
+      'butchery kibungo': 'bk', 'butchery - kibungo': 'bk', 'butchery — kibungo': 'bk',
+        'butchery rwamagana': 'br', 'butchery - rwamagana': 'br', 'butchery — rwamagana': 'br',
+        'butchery nyabugogo': 'bn', 'butchery - nyabugogo': 'bn', 'butchery — nyabugogo': 'bn',
     };
     for (const name of allBatchNames) {
       DEPT_KEY_MAP[`broiler — ${name}`.toLowerCase()] = `batch_${name}`;
@@ -258,7 +241,7 @@ export async function GET(request: Request) {
       const depts = String(r[2] || '').split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
       if (depts.length === 0) continue;
       const share = amount / depts.length;
-      if (!finExtrasPerDate[d]) finExtrasPerDate[d] = { ef: 0, bf: 0, kBat: 0, kNya: 0, bu: 0 };
+      if (!finExtrasPerDate[d]) finExtrasPerDate[d] = { bf: 0, bk: 0, br: 0, bn: 0 };
       for (const deptLabel of depts) {
         const key = DEPT_KEY_MAP[deptLabel];
         if (!key) continue;
@@ -268,11 +251,6 @@ export async function GET(request: Request) {
 
     // Build a record for each date — now includes per-batch broiler data
     const buildRecord = (dateStr: string) => {
-      // Egg Farm
-      const efRows = efData.filter(r => normalizeDate(r[0]) === dateStr);
-      let efRev = 0, efExp = 0;
-      for (const r of efRows) { const v = getEfValues(r); efRev += v.rev; efExp += v.exp; }
-
       // Broiler — per batch
       const bfRows = bfData.filter(r => normalizeDate(r[0]) === dateStr);
       const broilerByBatch = batchTotals(bfRows);
@@ -288,43 +266,33 @@ export async function GET(request: Request) {
         batchFields[`broiler_${bname}_profit`] = vals.rev - (vals.exp + bExtra);
       }
 
-      // Egg Kiosk
-      const ekRows = ekData.filter(r => normalizeDate(r[0]) === dateStr);
-      let kBatRev = 0, kBatExp = 0, kNyaRev = 0, kNyaExp = 0;
-      for (const r of ekRows) {
-        const loc = String(r[1] || '');
-        if (loc.includes('Batsinda')) { kBatRev += parseNum(r[7]); kBatExp += parseNum(r[6]); }
-        else if (loc.includes('Nyabugogo')) { kNyaRev += parseNum(r[7]); kNyaExp += parseNum(r[6]); }
-      }
-
       // Butcher
-      const buRows = buData.filter(r => normalizeDate(r[0]) === dateStr);
-      let buRev = 0, buExp = 0;
-      for (const r of buRows) { buRev += parseNum(r[7]); buExp += parseNum(r[6]); }
+      const bkRows = bkData.filter(r => normalizeDate(r[0]) === dateStr);
+      const brRows = brData.filter(r => normalizeDate(r[0]) === dateStr);
+      const bnRows = bnData.filter(r => normalizeDate(r[0]) === dateStr);
+      let bkRev = 0, bkExp = 0, brRev = 0, brExp = 0, bnRev = 0, bnExp = 0;
+      for (const r of bkRows) { bkRev += parseNum(r[7]); bkExp += parseNum(r[6]); }
+      for (const r of brRows) { brRev += parseNum(r[7]); brExp += parseNum(r[6]); }
+      for (const r of bnRows) { bnRev += parseNum(r[7]); bnExp += parseNum(r[6]); }
+      const buRev = bkRev + brRev + bnRev;
+      let buExp = bkExp + brExp + bnExp;
 
       // Finance extras (non-batch)
-      efExp += extras.ef || 0;
       bfTotalExp += extras.bf || 0;
-      kBatExp += extras.kBat || 0;
-      kNyaExp += extras.kNya || 0;
-      buExp += extras.bu || 0;
+      buExp += (extras.bk || 0) + (extras.br || 0) + (extras.bn || 0);
 
-      const efProf = efRev - efExp;
       const bfProf = bfTotalRev - bfTotalExp;
-      const kBatProf = kBatRev - kBatExp;
-      const kNyaProf = kNyaRev - kNyaExp;
       const buProf = buRev - buExp;
 
-      const tRev = efRev + bfTotalRev + kBatRev + kNyaRev + buRev;
-      const tExp = efExp + bfTotalExp + kBatExp + kNyaExp + buExp;
+      const tRev = bfTotalRev + buRev;
+      const tExp = bfTotalExp + buExp;
 
       return {
         date: dateStr,
-        eggFarmRevenue: efRev, eggFarmExpenses: efExp, eggFarmProfit: efProf,
         broilerRevenue: bfTotalRev, broilerExpenses: bfTotalExp, broilerProfit: bfProf,
-        kioskBatsindaRevenue: kBatRev, kioskBatsindaExpenses: kBatExp, kioskBatsindaProfit: kBatProf,
-        kioskNyabugogoRevenue: kNyaRev, kioskNyabugogoExpenses: kNyaExp, kioskNyabugogoProfit: kNyaProf,
-        butcherRevenue: buRev, butcherExpenses: buExp, butcherProfit: buProf,
+        kibungoRevenue: bkRev, kibungoExpenses: bkExp, kibungoProfit: bkRev - bkExp,
+        rwamaganaRevenue: brRev, rwamaganaExpenses: brExp, rwamaganaProfit: brRev - brExp,
+        nyabugogoRevenue: bnRev, nyabugogoExpenses: bnExp, nyabugogoProfit: bnRev - bnExp,
         totalRevenue: tRev, totalExpenses: tExp, netProfit: tRev - tExp,
         timestamp: '',
         ...batchFields,
@@ -375,41 +343,42 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Unauthorized: Invalid token' }, { status: 401 });
     }
 
-    const userEmail = decodedToken.email;
-    if (!userEmail || (userEmail.toLowerCase() !== 'finance@30plus.rw' && userEmail.toLowerCase() !== 'admin@30plus.rw')) {
+    const userEmail = decodedToken.email?.toLowerCase();
+    const isAuthorized = userEmail && (
+      userEmail === 'finance@muveste.com' ||
+      userEmail === 'admin@muveste.com'
+    );
+    if (!isAuthorized) {
       return NextResponse.json({ error: 'Forbidden: Finance access required' }, { status: 403 });
     }
 
     const body = await request.json();
     const {
       date,
-      eggFarmRevenue, eggFarmExpenses,
       broilerRevenue, broilerExpenses,
-      kioskBatsindaRevenue, kioskBatsindaExpenses,
-      kioskNyabugogoRevenue, kioskNyabugogoExpenses,
-      butcherRevenue, butcherExpenses,
+      kibungoRevenue, kibungoExpenses,
+      rwamaganaRevenue, rwamaganaExpenses,
+      nyabugogoRevenue, nyabugogoExpenses,
     } = body;
 
     if (!date) return NextResponse.json({ error: 'Date is required' }, { status: 400 });
 
-    const efRev = parseNum(eggFarmRevenue);    const efExp = parseNum(eggFarmExpenses);    const efProf = efRev - efExp;
     const bfRev = parseNum(broilerRevenue);    const bfExp = parseNum(broilerExpenses);    const bfProf = bfRev - bfExp;
-    const batRev = parseNum(kioskBatsindaRevenue); const batExp = parseNum(kioskBatsindaExpenses); const batProf = batRev - batExp;
-    const nyaRev = parseNum(kioskNyabugogoRevenue); const nyaExp = parseNum(kioskNyabugogoExpenses); const nyaProf = nyaRev - nyaExp;
-    const buRev = parseNum(butcherRevenue);    const buExp = parseNum(butcherExpenses);    const buProf = buRev - buExp;
+    const bkRev = parseNum(kibungoRevenue);    const bkExp = parseNum(kibungoExpenses);    const bkProf = bkRev - bkExp;
+    const brRev = parseNum(rwamaganaRevenue);    const brExp = parseNum(rwamaganaExpenses);    const brProf = brRev - brExp;
+    const bnRev = parseNum(nyabugogoRevenue);    const bnExp = parseNum(nyabugogoExpenses);    const bnProf = bnRev - bnExp;
 
-    const totalRev = efRev + bfRev + batRev + nyaRev + buRev;
-    const totalExp = efExp + bfExp + batExp + nyaExp + buExp;
+    const totalRev = bfRev + bkRev + brRev + bnRev;
+    const totalExp = bfExp + bkExp + brExp + bnExp;
     const netProf = totalRev - totalExp;
 
     const now = new Date();
     const newRow = [
       date,
-      efRev, efExp, efProf,
       bfRev, bfExp, bfProf,
-      batRev, batExp, batProf,
-      nyaRev, nyaExp, nyaProf,
-      buRev, buExp, buProf,
+      bkRev, bkExp, bkProf,
+      brRev, brExp, brProf,
+      bnRev, bnExp, bnProf,
       totalRev, totalExp, netProf,
       now.toISOString(),
     ];

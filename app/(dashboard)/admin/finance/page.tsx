@@ -72,19 +72,13 @@ export default function AdminFinancePage() {
   const exportCSV = () => {
     const headers = [
       'Date',
-      'EF Rev', 'EF Exp', 'EF Profit',
       'BF Rev', 'BF Exp', 'BF Profit',
-      'KB Rev', 'KB Exp', 'KB Profit',
-      'KN Rev', 'KN Exp', 'KN Profit',
       'BU Rev', 'BU Exp', 'BU Profit',
       'Total Rev', 'Total Exp', 'Net Profit'
     ];
     const rows = displayedRecords.map(r => [
       r.date,
-      r.eggFarmRevenue, r.eggFarmExpenses, r.eggFarmProfit,
       r.broilerRevenue, r.broilerExpenses, r.broilerProfit,
-      r.kioskBatsindaRevenue, r.kioskBatsindaExpenses, r.kioskBatsindaProfit,
-      r.kioskNyabugogoRevenue, r.kioskNyabugogoExpenses, r.kioskNyabugogoProfit,
       r.butcherRevenue, r.butcherExpenses, r.butcherProfit,
       r.totalRevenue, r.totalExpenses, r.netProfit
     ]);
@@ -93,7 +87,7 @@ export default function AdminFinancePage() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `30plus-admin-finance-${period}.csv`;
+    a.download = `muveste-admin-finance-${period}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   };

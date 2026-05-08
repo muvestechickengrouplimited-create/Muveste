@@ -1,13 +1,15 @@
 import { NextResponse } from 'next/server';
 import { getRows, appendRow, updateCell } from '../../../../lib/sheets';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
   try {
     const rows = await getRows('broiler-batches');
     return NextResponse.json(rows.slice(1));
-  } catch (error) {
+  } catch (error: any) {
     console.error('API Error in admin/batches [GET]:', error);
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    return NextResponse.json({ error: error instanceof Error ? error.message : String(error) }, { status: 500 });
   }
 }
 
@@ -21,9 +23,9 @@ export async function POST(request: Request) {
       createdBy
     ]);
     return NextResponse.json({ success: true });
-  } catch (error) {
+  } catch (error: any) {
     console.error('API Error in admin/batches [POST]:', error);
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    return NextResponse.json({ error: error instanceof Error ? error.message : String(error) }, { status: 500 });
   }
 }
 
@@ -40,8 +42,8 @@ export async function PATCH(request: Request) {
     }
     
     return NextResponse.json({ error: 'Batch not found' }, { status: 404 });
-  } catch (error) {
+  } catch (error: any) {
     console.error('API Error in admin/batches [PATCH]:', error);
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    return NextResponse.json({ error: error instanceof Error ? error.message : String(error) }, { status: 500 });
   }
 }

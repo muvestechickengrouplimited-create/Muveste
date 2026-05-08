@@ -12,9 +12,7 @@ interface ActivityLog {
 }
 
 const DEPT_COLORS: Record<string, string> = {
-  'Egg Farm': '#1B6B3A',
   'Broiler Farm': '#E07B00',
-  'Egg Kiosk': '#F5C518',
   'butcher': '#2D2D2D',
   'Finance': '#9FE1CB'
 };

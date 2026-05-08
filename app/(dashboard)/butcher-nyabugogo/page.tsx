@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import ButcherForm from '@/components/forms/ButcherForm';
+import ButcherNyabugogoForm from '@/components/forms/ButcherNyabugogoForm';
 import { StatCard } from '../../../components/ui/StatCard';
 import {
   Table,
@@ -59,7 +59,13 @@ const DamagedIcon = () => (
 );
 
 // ─── Page ────────────────────────────────────────────────────────────────────
-export default function butcherDashboard() {
+// ─── Skeleton ────────────────────────────────────────────────────────────────
+const Skeleton = ({ className }: { className?: string }) => (
+  <div className={`animate-pulse bg-[#e8f5e8] rounded-xl ${className}`} />
+);
+
+// ─── Page ────────────────────────────────────────────────────────────────────
+export default function ButcherNyabugogoDashboard() {
   const [records, setRecords] = useState<butcherRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -73,6 +79,8 @@ export default function butcherDashboard() {
   });
 
   const fetchRecords = useCallback(async () => {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 8000);
     try {
       setLoading(true);
       setError(null);
@@ -83,10 +91,13 @@ export default function butcherDashboard() {
         return;
       }
 
-      const res = await fetch('/api/butcher', {
+      const res = await fetch('/api/butcher-nyabugogo', {
         headers: { Authorization: `Bearer ${token}` },
         cache: 'no-store',
+        signal: controller.signal,
       });
+
+      clearTimeout(timeout);
 
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
@@ -97,6 +108,7 @@ export default function butcherDashboard() {
       const data = await res.json();
       setRecords(data.data || []);
     } catch (err) {
+      clearTimeout(timeout);
       console.error('Failed to fetch butcher records:', err);
       setError('Failed to load records. Please refresh.');
     } finally {
@@ -122,75 +134,81 @@ export default function butcherDashboard() {
     .filter((r) => new Date(r.date) >= cutoff7)
     .slice(0, 20);
 
-  if (loading && records.length === 0) {
-    return (
-      <div className="p-8">
-        <div className="animate-pulse space-y-8 max-w-7xl mx-auto">
-          <div className="h-10 bg-gray-200 rounded w-1/4"></div>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="h-28 bg-gray-200 rounded-2xl"></div>
-            <div className="h-28 bg-gray-200 rounded-2xl"></div>
-            <div className="h-28 bg-gray-200 rounded-2xl"></div>
-            <div className="h-28 bg-gray-200 rounded-2xl"></div>
-          </div>
-          <div className="h-96 bg-gray-200 rounded-2xl mt-8"></div>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <>
       <div className="hidden md:block">
-        <div className="space-y-8 pb-8">
+        <div className="space-y-8 pb-8 px-4 py-4 md:px-8 md:py-6">
           {/* ── Header ─────────────────────────────────────────────────────── */}
           <div className="flex flex-col gap-1">
             <h1 className="text-3xl font-bold tracking-tight text-[#1B6B3A]">
-              Butchery — Daily Report
+              Butchery — Nyabugogo
             </h1>
             <p className="text-[#111827] opacity-70 text-base">{todayLabel}</p>
           </div>
 
+          {/* ── Error Boundaries ───────────────────────────────────────────── */}
+          {error && (
+            <div className="bg-red-50 border border-red-100 rounded-xl p-4 text-center animate-in fade-in duration-300">
+              <p className="text-sm text-red-500 mb-3">
+                Failed to load data
+              </p>
+              <button
+                onClick={() => window.location.reload()}
+                className="bg-[#006400] text-white rounded-lg px-4 py-2 text-xs font-semibold"
+              >
+                Retry
+              </button>
+            </div>
+          )}
+
           {/* ── Summary Cards ──────────────────────────────────────────────── */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <StatCard
-              title="Meat sold today"
-              value={`${todayMeatSold.toFixed(2)} kg`}
-              icon={<MeatIcon />}
-              className="border-l-4 border-[#1B6B3A]"
-            />
-            <StatCard
-              title="Total sales"
-              value={formatRWF(todaySales)}
-              icon={<SalesIcon />}
-              className="border-l-4 border-[#F5C518]"
-            />
-            <StatCard
-              title="Profit today"
-              value={formatRWF(todayProfit)}
-              icon={<ProfitIcon />}
-              className={`border-l-4 ${todayProfit >= 0 ? 'border-[#1B6B3A]' : 'border-[#D9534F]'}`}
-            />
-            <StatCard
-              title="Damaged today"
-              value={`${todayDamaged.toFixed(2)} kg`}
-              icon={<DamagedIcon />}
-              className="border-l-4 border-[#E07B00]"
-            />
-          </div>
+          {loading ? (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+              {[1,2,3,4].map(i => (
+                <Skeleton key={i} className="h-28"/>
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <StatCard
+                title="Meat sold today"
+                value={`${todayMeatSold.toFixed(2)} kg`}
+                icon={<MeatIcon />}
+                className="border-l-4 border-[#1B6B3A]"
+              />
+              <StatCard
+                title="Total sales"
+                value={formatRWF(todaySales)}
+                icon={<SalesIcon />}
+                className="border-l-4 border-[#F5C518]"
+              />
+              <StatCard
+                title="Profit today"
+                value={formatRWF(todayProfit)}
+                icon={<ProfitIcon />}
+                className={`border-l-4 ${todayProfit >= 0 ? 'border-[#1B6B3A]' : 'border-[#D9534F]'}`}
+              />
+              <StatCard
+                title="Damaged today"
+                value={`${todayDamaged.toFixed(2)} kg`}
+                icon={<DamagedIcon />}
+                className="border-l-4 border-[#E07B00]"
+              />
+            </div>
+          )}
 
           {/* ── Main Content: Form (60%) + Table (40%) ─────────────────────── */}
           <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 items-start">
 
             {/* Form — 60% */}
             <div className="lg:col-span-3">
-              <ButcherForm />
+              <ButcherNyabugogoForm />
             </div>
 
             {/* Recent Submissions Table — 40% */}
             <div className="lg:col-span-2 flex flex-col gap-3">
               <div className="flex items-center justify-between">
-                <h2 className="text-base font-semibold text-[#111827]">
+                <h2 className="text-xl md:text-2xl font-semibold text-[#111827]">
                   Recent Submissions{' '}
                   <span className="text-xs font-normal text-gray-400 ml-1">(last 7 days)</span>
                 </h2>
@@ -209,73 +227,73 @@ export default function butcherDashboard() {
                     <p className="text-sm text-gray-400">Loading records…</p>
                   </div>
                 </div>
-              ) : error ? (
-                <div className="bg-red-50 border border-red-200 rounded-xl p-4">
-                  <p className="text-sm text-red-600">{error}</p>
-                </div>
               ) : recent7.length === 0 ? (
                 <div className="bg-white rounded-2xl border border-gray-100 shadow-[0_2px_12px_rgba(0,0,0,0.07)] py-12 flex flex-col items-center gap-2">
                   <span className="text-4xl">🥩</span>
                   <p className="text-sm text-gray-400">No submissions in the last 7 days.</p>
                 </div>
               ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Date</TableHead>
-                      <TableHead>Meat Sold</TableHead>
-                      <TableHead>Price/kg</TableHead>
-                      <TableHead>Total Sales</TableHead>
-                      <TableHead>Stock Left</TableHead>
-                      <TableHead>Butcher Exp</TableHead>
-                      <TableHead>Net Profit</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {recent7.map((record, idx) => (
-                      <TableRow key={`${record.date}-${idx}`}>
-                        <TableCell className="whitespace-nowrap font-medium">
-                          {formatDate(record.date)}
-                        </TableCell>
-                        <TableCell className="font-mono">
-                          {record.meatSold.toFixed(2)} kg
-                        </TableCell>
-                        <TableCell className="font-mono text-gray-600">
-                          {record.pricePerKg.toLocaleString()}
-                        </TableCell>
-                        <TableCell className="font-mono text-[#E07B00] font-semibold">
-                          {formatRWF(record.totalSales)}
-                        </TableCell>
-                        <TableCell className="font-mono text-blue-600">
-                          {record.stockLeft.toFixed(2)} kg
-                        </TableCell>
-                        <TableCell className="font-mono text-gray-500">
-                          {formatRWF(record.expenses)}
-                        </TableCell>
-                        <TableCell
-                          className={`font-mono font-semibold ${record.profit >= 0 ? 'text-[#1B6B3A]' : 'text-[#D9534F]'
-                            }`}
-                        >
-                          {formatRWF(record.profit)}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                <div className="overflow-x-auto -mx-4 md:mx-0">
+                  <div className="min-w-[600px] px-4 md:px-0 md:min-w-0">
+                    <Table className="w-full">
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Date</TableHead>
+                          <TableHead>Meat Sold</TableHead>
+                          <TableHead>Price/kg</TableHead>
+                          <TableHead>Total Sales</TableHead>
+                          <TableHead>Stock Left</TableHead>
+                          <TableHead>Butcher Exp</TableHead>
+                          <TableHead>Net Profit</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {recent7.map((record, idx) => (
+                          <TableRow key={`${record.date}-${idx}`}>
+                            <TableCell className="whitespace-nowrap font-medium">
+                              {formatDate(record.date)}
+                            </TableCell>
+                            <TableCell className="font-mono">
+                              {record.meatSold.toFixed(2)} kg
+                            </TableCell>
+                            <TableCell className="font-mono text-gray-600">
+                              {record.pricePerKg.toLocaleString()}
+                            </TableCell>
+                            <TableCell className="font-mono text-[#E07B00] font-semibold">
+                              {formatRWF(record.totalSales)}
+                            </TableCell>
+                            <TableCell className="font-mono text-blue-600">
+                              {record.stockLeft.toFixed(2)} kg
+                            </TableCell>
+                            <TableCell className="font-mono text-gray-500">
+                              {formatRWF(record.expenses)}
+                            </TableCell>
+                            <TableCell
+                              className={`font-mono font-semibold ${record.profit >= 0 ? 'text-[#1B6B3A]' : 'text-[#D9534F]'
+                                }`}
+                            >
+                              {formatRWF(record.profit)}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </div>
               )}
             </div>
           </div>
         </div>
       </div>
       <div className="block md:hidden">
-        <ButcherMobile />
+        <ButcherNyabugogoMobile />
       </div>
     </>
   );
 }
 
 // ─── Mobile Component ───────────────────────────────────────────────────────
-function ButcherMobile() {
+function ButcherNyabugogoMobile() {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(1);
   const totalSteps = 3;
@@ -306,7 +324,7 @@ function ButcherMobile() {
       try {
         const token = await auth.currentUser?.getIdToken();
         if (!token) return;
-        const res = await fetch('/api/butcher', {
+        const res = await fetch('/api/butcher-nyabugogo', {
           headers: { Authorization: `Bearer ${token}` }
         });
         if (res.ok) {
@@ -367,7 +385,7 @@ function ButcherMobile() {
         notes,
       };
 
-      const res = await fetch('/api/butcher', {
+      const res = await fetch('/api/butcher-nyabugogo', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify(payload),
@@ -377,7 +395,7 @@ function ButcherMobile() {
       
       // Also re-fetch the latest stock 
       try {
-        const fetchRes = await fetch('/api/butcher', {
+        const fetchRes = await fetch('/api/butcher-nyabugogo', {
           headers: { Authorization: `Bearer ${token}` }
         });
         if (fetchRes.ok) {

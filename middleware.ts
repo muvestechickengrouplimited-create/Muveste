@@ -4,12 +4,13 @@ import type { NextRequest } from 'next/server';
 // Define the dashboard paths that need to be protected.
 // Even though they are under the (dashboard) route group, their actual URLs don't include 'dashboard'.
 const protectedPaths = [
-  '/egg-farm',
   '/broiler-farm',
-  '/egg-kiosk',
-  '/butcher',
+  '/butcher-kibungo',
+  '/butcher-rwamagana',
+  '/butcher-nyabugogo',
   '/finance',
-  '/admin'
+  '/admin',
+  '/settings'
 ];
 
 export function middleware(request: NextRequest) {

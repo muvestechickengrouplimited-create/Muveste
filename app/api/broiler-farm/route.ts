@@ -3,15 +3,21 @@ import { prependRow, getRows, updateRow } from '../../../lib/sheets';
 import { formatDate, formatTime } from '../../../lib/utils';
 import * as admin from 'firebase-admin';
 
+export const dynamic = 'force-dynamic';
+
 // Initialize Firebase Admin (once)
 if (!admin.apps.length) {
-  admin.initializeApp({
-    credential: admin.credential.cert({
-      projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-      clientEmail: process.env.FIREBASE_SERVICE_ACCOUNT_EMAIL || process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
-      privateKey: (process.env.FIREBASE_PRIVATE_KEY || process.env.GOOGLE_PRIVATE_KEY)?.replace(/\\n/g, '\n'),
-    }),
-  });
+  try {
+    admin.initializeApp({
+      credential: admin.credential.cert({
+        projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+        clientEmail: process.env.FIREBASE_SERVICE_ACCOUNT_EMAIL || process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
+        privateKey: (process.env.FIREBASE_PRIVATE_KEY || process.env.GOOGLE_PRIVATE_KEY)?.replace(/\\n/g, '\n'),
+      }),
+    });
+  } catch (err) {
+    console.warn("Firebase Admin failed to initialize during static generation:", err);
+  }
 }
 
 // ─── Helper ────────────────────────────────────────────────────────────────
@@ -48,7 +54,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const userEmail = decodedToken.email;
+    const userEmail = decodedToken.email?.toLowerCase();
     if (!userEmail) {
       return NextResponse.json(
         { error: 'Unauthorized: No email associated with token' },
@@ -58,8 +64,8 @@ export async function POST(request: Request) {
 
     // Role check: Only broiler_farm or admin can submit
     const isAuthorized =
-      userEmail.toLowerCase() === 'broiler@30plus.rw' ||
-      userEmail.toLowerCase() === 'admin@30plus.rw';
+      userEmail === 'broiler@muveste.com' ||
+      userEmail === 'admin@muveste.com';
     if (!isAuthorized) {
       return NextResponse.json(
         { error: 'Forbidden: Insufficient permissions for Broiler Farm' },
@@ -184,10 +190,10 @@ export async function POST(request: Request) {
       profit, 
       updated: existingRowIndex !== -1 
     }, { status: existingRowIndex !== -1 ? 200 : 201 });
-  } catch (error: unknown) {
+  } catch (error: any) {
     console.error('API Error in broiler-farm/route.ts [POST]:', error);
     return NextResponse.json(
-      { error: 'Internal Server Error' },
+      { error: error.message || 'Internal Server Error' },
       { status: 500 }
     );
   }
@@ -349,10 +355,10 @@ export async function GET(request: Request) {
 
     return NextResponse.json({ success: true, data: recent });
 
-  } catch (error: unknown) {
+  } catch (error: any) {
     console.error('API Error in broiler-farm/route.ts [GET]:', error);
     return NextResponse.json(
-      { success: false, error: 'Internal Server Error' },
+      { success: false, error: error.message || 'Internal Server Error' },
       { status: 500 }
     );
   }

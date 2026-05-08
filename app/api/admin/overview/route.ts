@@ -2,14 +2,20 @@ import { NextResponse } from 'next/server';
 import { getRows } from '../../../../lib/sheets';
 import * as admin from 'firebase-admin';
 
+export const dynamic = 'force-dynamic';
+
 if (!admin.apps.length) {
-  admin.initializeApp({
-    credential: admin.credential.cert({
-      projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-      clientEmail: process.env.FIREBASE_SERVICE_ACCOUNT_EMAIL || process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
-      privateKey: (process.env.FIREBASE_PRIVATE_KEY || process.env.GOOGLE_PRIVATE_KEY)?.replace(/\\n/g, '\n'),
-    }),
-  });
+  try {
+    admin.initializeApp({
+      credential: admin.credential.cert({
+        projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+        clientEmail: process.env.FIREBASE_SERVICE_ACCOUNT_EMAIL || process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
+        privateKey: (process.env.FIREBASE_PRIVATE_KEY || process.env.GOOGLE_PRIVATE_KEY)?.replace(/\\n/g, '\n'),
+      }),
+    });
+  } catch (err) {
+    console.warn("Firebase Admin failed to initialize during static generation:", err);
+  }
 }
 
 function parseNum(val: unknown): number {
@@ -23,24 +29,12 @@ function parseNum(val: unknown): number {
 }
 
 // Map finance-expenses department labels → internal keys (case-insensitive lookup)
-// This must match the mapping in api/finance/route.ts
 const DEPT_KEY_MAP: Record<string, string> = {
-  'egg farm': 'ef', 'broiler farm': 'bf',
-  'kiosk batsinda': 'kBat', 'kiosk nyabugogo': 'kNya',
-  'butchery': 'bu', 'butcher': 'bu',
+  'broiler farm': 'bf',
+  'butchery kibungo': 'bk', 'butchery - kibungo': 'bk', 'butchery — kibungo': 'bk',
+  'butchery rwamagana': 'br', 'butchery - rwamagana': 'br', 'butchery — rwamagana': 'br',
+  'butchery nyabugogo': 'bn', 'butchery - nyabugogo': 'bn', 'butchery — nyabugogo': 'bn',
 };
-
-// Helper: get egg-farm values with correct indices based on format
-function getEfValues(r: string[]) {
-  const isBirdsSoldFmt = r.length >= 27;
-  const isDoubleStockFmt = r.length === 26 || r.length === 25;
-  const isProfitFmt = r.length === 24;
-  const isNewest = r.length === 23;
-  const isInter = r.length === 22;
-  const rev = parseNum(r[isBirdsSoldFmt ? 22 : (isDoubleStockFmt ? 20 : (isProfitFmt ? 19 : (isNewest ? 19 : (isInter ? 18 : 13))))]);
-  const exp = parseNum(r[isBirdsSoldFmt ? 21 : (isDoubleStockFmt ? 19 : (isProfitFmt ? 18 : (isNewest ? 18 : (isInter ? 17 : 12))))]);
-  return { rev, exp };
-}
 
 // Helper to handle mixed date formats (ISO vs human readable) reliably
 function normalizeDate(val: unknown): string {
@@ -65,16 +59,17 @@ export async function GET(request: Request) {
     const authHeader = request.headers.get('Authorization');
     if (!authHeader?.startsWith('Bearer ')) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     const token = await admin.auth().verifyIdToken(authHeader.split('Bearer ')[1]);
-    if (token.email?.toLowerCase() !== 'admin@30plus.rw') return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    const emailLower = token.email?.toLowerCase();
+    if (emailLower !== 'admin@muveste.com') return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
     const { searchParams } = new URL(request.url);
     const period = searchParams.get('period'); // 'daily' | 'monthly'
     const today = new Date().toISOString().split('T')[0];
     const targetMonth = today.substring(0, 7); // YYYY-MM
 
-    // Fetch all department sheets + finance-expenses + broiler batches
-    const [efRows, bfRows, ekRows, buRows, finExpRows, batchRows] = await Promise.all([
-      getRows('egg-farm'), getRows('broiler-farm'), getRows('egg-kiosk'), getRows('butcher'), getRows('finance-expenses'), getRows('broiler-batches')
+    // Fetch only broiler-farm and butcher sheets + finance-expenses + broiler batches
+    const [bfRows, bkRows, brRows, bnRows, finExpRows, batchRows] = await Promise.all([
+      getRows('broiler-farm'), getRows('butcher-kibungo'), getRows('butcher-rwamagana'), getRows('butcher-nyabugogo'), getRows('finance-expenses'), getRows('broiler-batches')
     ]);
 
     const allBatchNames: string[] = (batchRows || []).slice(1).map((r: string[]) => r[0]).filter(Boolean);
@@ -97,7 +92,7 @@ export async function GET(request: Request) {
     const isMonthly = period === 'monthly';
     const target = isMonthly ? targetMonth : today;
 
-    // ─── AGGREGATION LOGIC (MATCHES FINANCE API) ──────────────────────────────────
+    // ─── AGGREGATION LOGIC ──────────────────────────────────
     
     // 1. Process Finance Extras
     const finExpFiltered = filterByDate(finExpRows || [], target, isMonthly);
@@ -119,14 +114,11 @@ export async function GET(request: Request) {
 
     // 2. Build aggregator for daily data
     const buildDailySummary = (dateStr: string) => {
-      const efDay = filterByDate(efRows || [], dateStr, false);
       const bfDay = filterByDate(bfRows || [], dateStr, false);
-      const ekDay = filterByDate(ekRows || [], dateStr, false);
-      const buDay = filterByDate(buRows || [], dateStr, false);
+      const bkDay = filterByDate(bkRows || [], dateStr, false);
+      const brDay = filterByDate(brRows || [], dateStr, false);
+      const bnDay = filterByDate(bnRows || [], dateStr, false);
       const dayExtras = extrasPerDate[dateStr] || {};
-
-      let efRev = 0, efExp = 0;
-      for (const r of efDay) { const v = getEfValues(r); efRev += v.rev; efExp += v.exp; }
 
       let bfTotalRev = 0, bfTotalExp = 0;
       const batchData: Record<string, { rev: number; exp: number }> = {};
@@ -146,31 +138,25 @@ export async function GET(request: Request) {
         batchApiData[`broiler_${name}`] = { revenue: vals.rev, expenses: vals.exp + bExtra };
       }
 
-      let batRev = 0, batExp = 0, nyaRev = 0, nyaExp = 0;
-      for (const r of ekDay) {
-        const loc = String(r[1] || '').toLowerCase();
-        if (loc.includes('batsinda')) { batRev += parseNum(r[7]); batExp += parseNum(r[6]); }
-        else if (loc.includes('nyabugogo')) { nyaRev += parseNum(r[7]); nyaExp += parseNum(r[6]); }
-      }
+      let bkRev = 0, bkExp = 0;
+      for (const r of bkDay) { bkRev += parseNum(r[7]); bkExp += parseNum(r[6]); }
+      let brRev = 0, brExp = 0;
+      for (const r of brDay) { brRev += parseNum(r[7]); brExp += parseNum(r[6]); }
+      let bnRev = 0, bnExp = 0;
+      for (const r of bnDay) { bnRev += parseNum(r[7]); bnExp += parseNum(r[6]); }
 
-      let buRev = 0, buExp = 0;
-      for (const r of buDay) { buRev += parseNum(r[7]); buExp += parseNum(r[6]); }
-
-      // Add non-batch finance extras
-      efExp += (dayExtras.ef || 0);
-      batExp += (dayExtras.kBat || 0);
-      nyaExp += (dayExtras.kNya || 0);
-      buExp += (dayExtras.bu || 0);
+      bkExp += (dayExtras.bk || 0);
+      brExp += (dayExtras.br || 0);
+      bnExp += (dayExtras.bn || 0);
       bfTotalExp += (dayExtras.bf || 0); // Flat farm extras
 
       return {
         date: dateStr,
-        eggFarm: { active: !!efDay[0], revenue: efRev, expenses: efExp, profit: efRev - efExp, rawData: efDay[0] || [], allRows: efRows.slice(1).filter(r => normalizeDate(r[0]) === dateStr) },
         broiler: { active: !!bfDay[0], revenue: bfTotalRev, expenses: bfTotalExp, profit: bfTotalRev - bfTotalExp, rawData: bfDay[0] || [], allRows: bfRows.slice(1).filter(r => normalizeDate(r[0]) === dateStr) },
-        eggKioskBatsinda: { active: !!ekDay.find(r => String(r[1] || '').includes('Batsinda')), revenue: batRev, expenses: batExp, profit: batRev - batExp, rawData: ekDay.find(r => String(r[1] || '').includes('Batsinda')) || [], allRows: ekRows.slice(1).filter(r => normalizeDate(r[0]) === dateStr && String(r[1] || '').includes('Batsinda')) },
-        eggKioskNyabugogo: { active: !!ekDay.find(r => String(r[1] || '').includes('Nyabugogo')), revenue: nyaRev, expenses: nyaExp, profit: nyaRev - nyaExp, rawData: ekDay.find(r => String(r[1] || '').includes('Nyabugogo')) || [], allRows: ekRows.slice(1).filter(r => normalizeDate(r[0]) === dateStr && String(r[1] || '').includes('Nyabugogo')) },
-        butcher: { active: !!buDay[0], revenue: buRev, expenses: buExp, profit: buRev - buExp, rawData: buDay[0] || [], allRows: buRows.slice(1).filter(r => normalizeDate(r[0]) === dateStr) },
-        totals: { revenue: efRev + bfTotalRev + batRev + nyaRev + buRev, expenses: efExp + bfTotalExp + batExp + nyaExp + buExp },
+        bk: { active: !!bkDay[0], revenue: bkRev, expenses: bkExp, profit: bkRev - bkExp, rawData: bkDay[0] || [], allRows: bkRows.slice(1).filter(r => normalizeDate(r[0]) === dateStr) },
+        br: { active: !!brDay[0], revenue: brRev, expenses: brExp, profit: brRev - brExp, rawData: brDay[0] || [], allRows: brRows.slice(1).filter(r => normalizeDate(r[0]) === dateStr) },
+        bn: { active: !!bnDay[0], revenue: bnRev, expenses: bnExp, profit: bnRev - bnExp, rawData: bnDay[0] || [], allRows: bnRows.slice(1).filter(r => normalizeDate(r[0]) === dateStr) },
+        totals: { revenue: bfTotalRev + bkRev + brRev + bnRev, expenses: bfTotalExp + bkExp + brExp + bnExp },
         // Per-batch data with finance extras — keyed as broiler_BatchName
         ...batchApiData,
       };
@@ -179,7 +165,7 @@ export async function GET(request: Request) {
     if (isMonthly) {
       // For monthly view, we iterate all unique dates in the target month
       const allDates = new Set<string>();
-      [efRows, bfRows, ekRows, buRows].forEach(sheet => {
+      [bfRows, bkRows, brRows, bnRows].forEach(sheet => {
         (sheet || []).slice(1).forEach(r => {
           const d = normalizeDate(r[0]);
           if (d && d.startsWith(targetMonth)) allDates.add(d);
@@ -198,7 +184,7 @@ export async function GET(request: Request) {
 
     // Default: Daily summary for 'today'
     const summary = buildDailySummary(today);
-    const activeDepts = [summary.eggFarm.active, summary.broiler.active, summary.eggKioskBatsinda.active, summary.eggKioskNyabugogo.active, summary.butcher.active].filter(Boolean).length;
+    const activeDepts = [summary.broiler.active, summary.bk.active, summary.br.active, summary.bn.active].filter(Boolean).length;
 
     const batchApiKeys = Object.keys(summary).filter(k => k.startsWith('broiler_'));
     const batchApiDataObj: Record<string, any> = {};
@@ -214,12 +200,10 @@ export async function GET(request: Request) {
         activeDepts 
       },
       departments: { 
-        eggFarm: summary.eggFarm, 
         broiler: summary.broiler, 
-        eggKioskBatsinda: summary.eggKioskBatsinda, 
-        eggKioskNyabugogo: summary.eggKioskNyabugogo, 
-        butcher: summary.butcher,
-        eggKiosk: { revenue: summary.eggKioskBatsinda.revenue + summary.eggKioskNyabugogo.revenue, expenses: summary.eggKioskBatsinda.expenses + summary.eggKioskNyabugogo.expenses },
+        bk: summary.bk,
+        br: summary.br,
+        bn: summary.bn,
         ...batchApiDataObj
       }
     });

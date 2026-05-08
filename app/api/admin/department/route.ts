@@ -2,14 +2,20 @@ import { NextResponse } from 'next/server';
 import { getRows } from '../../../../lib/sheets';
 import * as admin from 'firebase-admin';
 
+export const dynamic = 'force-dynamic';
+
 if (!admin.apps.length) {
-  admin.initializeApp({
-    credential: admin.credential.cert({
-      projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-      clientEmail: process.env.FIREBASE_SERVICE_ACCOUNT_EMAIL || process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
-      privateKey: (process.env.FIREBASE_PRIVATE_KEY || process.env.GOOGLE_PRIVATE_KEY)?.replace(/\\n/g, '\n'),
-    }),
-  });
+  try {
+    admin.initializeApp({
+      credential: admin.credential.cert({
+        projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+        clientEmail: process.env.FIREBASE_SERVICE_ACCOUNT_EMAIL || process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
+        privateKey: (process.env.FIREBASE_PRIVATE_KEY || process.env.GOOGLE_PRIVATE_KEY)?.replace(/\\n/g, '\n'),
+      }),
+    });
+  } catch (err) {
+    console.warn("Firebase Admin failed to initialize during static generation:", err);
+  }
 }
 function parseNum(val: unknown): number {
   if (typeof val === 'number') return isNaN(val) ? 0 : val;
@@ -23,9 +29,7 @@ function parseNum(val: unknown): number {
 
 // Maps dept display name → sheet tab name
 const DEPT_MAP: Record<string, string> = {
-  'Egg Farm': 'egg-farm',
   'Broiler Farm': 'broiler-farm',
-  'Egg Kiosk': 'egg-kiosk',
   'butcher': 'butcher',
 };
 
@@ -35,14 +39,18 @@ export async function GET(request: Request) {
     if (!authHeader?.startsWith('Bearer ')) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     const token = await admin.auth().verifyIdToken(authHeader.split('Bearer ')[1]);
     const userEmail = token.email?.toLowerCase();
-    if (userEmail !== 'admin@30plus.rw' && userEmail !== 'finance@30plus.rw') {
+    const isAuthorized = userEmail && (
+      userEmail === 'admin@muveste.com' ||
+      userEmail === 'finance@muveste.com'
+    );
+    if (!isAuthorized) {
       return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 });
     }
 
     const { searchParams } = new URL(request.url);
     const dept = searchParams.get('dept');
     const date = searchParams.get('date'); // optional — if provided, return structured detail
-    const location = searchParams.get('location'); // optional — for egg-kiosk: 'Batsinda' | 'Nyabugogo'
+    const location = searchParams.get('location'); // optional
 
     if (!dept) return NextResponse.json({ success: false, error: 'Missing department string' }, { status: 400 });
 
@@ -73,12 +81,9 @@ export async function GET(request: Request) {
       const headers = rows[0].map(String);
       const dataRows = rows.slice(1);
 
-      // Find today's row (match by date string prefix, applying location filter for egg-kiosk)
+      // Find today's row (match by date string prefix)
       const todayRow = dataRows.find(r => {
         if (!r[0]?.startsWith(date)) return false;
-        if (location && sheetName === 'egg-kiosk') {
-          return String(r[1] || '').includes(location);
-        }
         return true;
       });
 
@@ -98,45 +103,6 @@ export async function GET(request: Request) {
 
       // Build structured response based on department
       const resolvedName = Object.keys(DEPT_MAP).find(k => DEPT_MAP[k] === sheetName) || dept;
-
-      if (sheetName === 'egg-farm') {
-        const isBirdsSoldFmt = todayRow.length >= 27;
-        const isDoubleStockFmt = todayRow.length === 26 || todayRow.length === 25;
-        const isProfitFmt = todayRow.length === 24;
-        const isNewest = todayRow.length === 23;
-        const isInter = todayRow.length === 22;
-        const isNew = isBirdsSoldFmt || isDoubleStockFmt || isProfitFmt || isNewest || isInter;
-
-        const totalEggsParam = parseNum(todayRow[isBirdsSoldFmt ? 15 : (isNew ? 13 : 10)]);
-        const revParam = parseNum(todayRow[isBirdsSoldFmt ? 22 : (isDoubleStockFmt ? 20 : (isProfitFmt ? 19 : (isNewest ? 19 : (isInter ? 18 : 13))))]);
-        const expParam = parseNum(todayRow[isBirdsSoldFmt ? 21 : (isDoubleStockFmt ? 19 : (isProfitFmt ? 18 : (isNewest ? 18 : (isInter ? 17 : 12))))]);
-        const profitParam = parseNum(todayRow[isBirdsSoldFmt ? 23 : (isDoubleStockFmt ? 21 : (isProfitFmt ? 20 : (isNewest ? 19 : (isInter ? 18 : 13))))]) || (revParam - expParam);
-        const notesParam = todayRow[isBirdsSoldFmt ? 24 : (isDoubleStockFmt ? 22 : (isProfitFmt ? 21 : (isNewest ? 20 : (isInter ? 19 : 14))))];
-        const medParam = todayRow[4];
-
-        const displayFields = [
-            { label: 'Feed qty', value: `${parseNum(todayRow[1]).toLocaleString()} kg` },
-            { label: 'Water consumed', value: `${parseNum(todayRow[3]).toLocaleString()} L` },
-            { label: 'Live birds', value: isNew ? parseNum(todayRow[isBirdsSoldFmt ? 9 : 7]).toLocaleString() : 'N/A' },
-            { label: 'Total eggs', value: totalEggsParam.toLocaleString() },
-        ];
-
-        if (isBirdsSoldFmt) {
-            displayFields.push({ label: 'Birds sold', value: parseNum(todayRow[6]).toLocaleString() });
-            displayFields.push({ label: 'Price per bird', value: `RWF ${parseNum(todayRow[7]).toLocaleString()}` });
-        }
-
-        return NextResponse.json({
-          department: resolvedName,
-          date,
-          fields: displayFields,
-          medications: medParam || null,
-          revenue: revParam,
-          expenses: expParam,
-          profit: profitParam,
-          notes: notesParam || null,
-        });
-      }
 
       if (sheetName === 'broiler-farm') {
         // Cols: Date(0), Feed Qty(1), Feed Price(2), Water(3), Medications(4), Birds(5), Mortality(6)
@@ -159,26 +125,6 @@ export async function GET(request: Request) {
           expenses: parseNum(todayRow[13]),
           profit: parseNum(todayRow[15]),
           notes: todayRow[16] || null,
-        });
-      }
-
-      if (sheetName === 'egg-kiosk') {
-        // [date(0), location(1), traysRec(2), traysSold(3), price(4), damaged(5), expenses(6), totalSales(7), traysLeft(8), profit(9), notes(10), financeExp(11), by(12), ts(13)]
-        return NextResponse.json({
-          department: resolvedName,
-          date,
-          fields: [
-            { label: 'Trays received', value: parseNum(todayRow[2]).toLocaleString() },
-            { label: 'Trays sold', value: parseNum(todayRow[3]).toLocaleString() },
-            { label: 'Price per tray', value: `RWF ${parseNum(todayRow[4]).toLocaleString()}` },
-            { label: 'Damaged trays', value: parseNum(todayRow[5]).toLocaleString() },
-            { label: 'Trays left', value: parseNum(todayRow[8]).toLocaleString() },
-          ],
-          medications: null,
-          revenue: parseNum(todayRow[7]),
-          expenses: parseNum(todayRow[6]),
-          profit: parseNum(todayRow[9]),
-          notes: todayRow[10] || null,
         });
       }
 

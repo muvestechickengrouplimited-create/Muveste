@@ -25,7 +25,7 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
       <div className="flex min-h-screen items-center justify-center bg-[#EAF5EE]">
         <div className="flex flex-col items-center space-y-4">
           <div className="h-12 w-12 animate-spin rounded-full border-4 border-[#1B6B3A] border-t-transparent shadow-md"></div>
-          <p className="text-sm font-medium text-[#1B6B3A] animate-pulse">Loading 30 Plus Dashboard...</p>
+          <p className="text-sm font-medium text-[#1B6B3A] animate-pulse">Loading Muveste Dashboard...</p>
         </div>
       </div>
     );
@@ -35,20 +35,16 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
   if (!user) return null;
 
   return (
-    <div className="flex h-screen overflow-hidden bg-[#f9fafb]">
-      {/* Sidebar hidden on very small screens temporarily, full width on desktop */}
-      <div className="hidden md:flex flex-shrink-0 z-40">
-        <Sidebar />
-      </div>
-      
-      <div className="flex flex-1 flex-col overflow-hidden max-w-full">
+    <div className="flex min-h-screen">
+      <Sidebar />
+      <main className="flex-1 min-w-0 ml-0 md:ml-0 overflow-x-hidden bg-[#f9fafb]">
         <Navbar />
-        <main className="flex-1 overflow-y-auto overflow-x-hidden bg-[#f9fafb] p-4 md:p-8">
+        <div className="px-4 py-4 md:px-8 md:py-6">
           <div className="mx-auto w-full max-w-7xl animate-in fade-in duration-300">
             {children}
           </div>
-        </main>
-      </div>
+        </div>
+      </main>
     </div>
   );
 }

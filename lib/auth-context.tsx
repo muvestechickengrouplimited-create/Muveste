@@ -14,17 +14,27 @@ const AuthContext = createContext<AuthContextType>({ user: null, loading: true }
 
 // Mapping predefined Firebase users to their specific roles
 const ROLE_MAP: Record<string, UserRole> = {
-  'eggfarm@30plus.rw': 'egg_farm',
-  'broiler@30plus.rw': 'broiler_farm',
-  'eggkiosk@30plus.rw': 'egg_kiosk',
-  'butcher@30plus.rw': 'butcher',
-  'finance@30plus.rw': 'finance',
-  'admin@30plus.rw': 'admin',
+  'broiler@muveste.com': 'broiler_farm',
+  'butchery-kibungo@muveste.com': 'butcher_kibungo',
+  'butchery-rwamagana@muveste.com': 'butcher_rwamagana',
+  'butchery-nyabugogo@muveste.com': 'butcher_nyabugogo',
+  'finance@muveste.com': 'finance',
+  'admin@muveste.com': 'admin',
+};
+
+// Role-based routing
+const roleRoutes: Record<string, string> = {
+  'broiler_farm'      : '/broiler-farm',
+  'butcher_kibungo'   : '/butcher-kibungo',
+  'butcher_rwamagana' : '/butcher-rwamagana',
+  'butcher_nyabugogo' : '/butcher-nyabugogo',
+  'finance'           : '/finance',
+  'admin'             : '/admin',
 };
 
 function getRoleFromEmail(email: string | null): UserRole | null {
   if (!email) return null;
-  return ROLE_MAP[email.toLowerCase()] || null;
+  return ROLE_MAP[email.trim().toLowerCase()] || null;
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {

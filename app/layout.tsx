@@ -9,16 +9,48 @@ const font = Plus_Jakarta_Sans({ subsets: ['latin'], weight: ['400','500','700']
 const mono = JetBrains_Mono({ subsets: ['latin'], variable: '--font-mono', display: 'swap' });
 
 export const metadata: Metadata = {
-  title: '30 Plus | Fresh chicken meat & Egg Delivery in Kigali, Rwanda',
-  description: 'Rwanda\'s premier poultry farm management.',
-  metadataBase: new URL('https://30plus.rw'),
+  title: 'Muveste — Premium Quality Poultry Rwanda',
+  description: 'Order fresh premium chicken meat in Rwanda. Daily fresh stock delivered from our farm. Located in Ngoma, Nyabugogo Kigali.',
+  metadataBase: new URL('https://muveste.rw'),
+  keywords: [
+    'chicken meat Rwanda',
+    'fresh chicken Kigali',
+    'poultry Rwanda',
+    'Muveste Rwanda',
+    'chicken Nyabugogo',
+    'broiler chicken Kigali',
+    'fresh meat Rwanda',
+    'buy chicken Kigali',
+    'poultry farm Rwanda',
+    'chicken delivery Kigali'
+  ],
+  openGraph: {
+    title: 'Muveste — Premium Quality Poultry',
+    description: 'Fresh premium chicken meat in Rwanda. Daily fresh stock!',
+    url: 'https://muveste.rw',
+    siteName: 'Muveste',
+    locale: 'en_RW',
+    type: 'website',
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
   alternates: {
-    canonical: 'https://30plus.rw',
+    canonical: 'https://muveste.rw',
   },
   icons: {
     icon: [
-      { url: '/favicon-16x16.png', sizes: '16x16', type: 'image/png' },
-      { url: '/favicon-32x32.png', sizes: '32x32', type: 'image/png' },
+      { 
+        url: '/favicon-16x16.png', 
+        sizes: '16x16', 
+        type: 'image/png' 
+      },
+      { 
+        url: '/favicon-32x32.png', 
+        sizes: '32x32', 
+        type: 'image/png' 
+      },
     ],
     apple: '/apple-touch-icon.png',
     shortcut: '/favicon.ico',
