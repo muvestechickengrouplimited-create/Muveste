@@ -126,7 +126,7 @@ export default function AboutPage() {
                 Muveste was founded to answer a critical need: the gap between rural production excellence and urban supply availability. We built our specialized broiler farm in **Zaza** with state-of-the-art poultry housing, feeding systems, and biological sanitation.
               </p>
               <p className="text-white/80 text-[15px] leading-relaxed mb-8">
-                By controlling the entire process from hatching to daily logistics, we bypass brokers. That is how we deliver both full chicken and premium cut chicken at an affordable **4,500 RWF per kg** to our meat outlets.
+                By controlling the entire process from hatching to daily logistics, we bypass brokers. That is how we deliver both full chicken and premium cut chicken at highly competitive, fair market rates to our meat outlets.
               </p>
               <Link 
                 href="/#checkout" 
@@ -187,8 +187,8 @@ export default function AboutPage() {
 
             <div className="border border-gray-100 rounded-[20px] p-6 text-center shadow-sm">
               <span className="block text-4xl mb-3">💰</span>
-              <h4 className="font-bold text-base text-[#006400] mb-2">Fair Price</h4>
-              <p className="text-xs text-[#6b6960] leading-relaxed">Both full chicken and chicken cuts locked at exactly 4,500 RWF / kg.</p>
+              <h4 className="font-bold text-base text-[#006400] mb-2">Fair Value</h4>
+              <p className="text-xs text-[#6b6960] leading-relaxed">Highly competitive and honest market rates for both whole chickens and premium cuts.</p>
             </div>
 
             <div className="border border-gray-100 rounded-[20px] p-6 text-center shadow-sm">
