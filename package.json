@@ -1,6 +1,6 @@
 {
   "$schema": "https://json.schemastore.org/package.json",
-  "name": "30-plus-poultry",
+  "name": "muveste",
   "version": "1.0.0",
   "private": true,
   "scripts": {
