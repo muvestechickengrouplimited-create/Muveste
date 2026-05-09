@@ -130,9 +130,9 @@ Delivery Location: ${location}`;
         <div className="absolute bg-[rgba(255,222,26,0.05)] border-[1px] border-[rgba(255,222,26,0.08)] w-[340px] h-[340px] rounded-full top-[40px] right-[60px] pointer-events-none" />
         <div className="absolute bg-[rgba(255,222,26,0.15)] w-[60px] h-[60px] rounded-[50%_0_50%_50%] top-[120px] left-[80px] transform rotate-[-30deg] pointer-events-none" />
 
-        <div className="max-w-[1100px] mx-auto w-full grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12 items-center relative z-10">
-          {/* LEFT SIDE */}
-          <div className="flex flex-col text-left">
+        <div className="max-w-[1100px] mx-auto w-full grid grid-cols-1 md:grid-cols-2 md:grid-rows-[auto_auto] gap-8 md:gap-y-0 md:gap-x-12 items-center relative z-10">
+          {/* WORDS (Badge + Title + Subtitle) */}
+          <div className="flex flex-col text-left order-1 md:order-1 md:col-start-1 md:row-start-1">
             <span className="inline-flex items-center gap-2 bg-[rgba(255,222,26,0.12)] border border-[rgba(255,222,26,0.3)] text-[#FFDE1A] text-[11px] md:text-[12px] font-bold px-[18px] py-[8px] rounded-[30px] tracking-widest uppercase w-fit">
               <span className="w-[6px] h-[6px] bg-[#FFDE1A] rounded-full" />
               PREMIUM QUALITY POULTRY
@@ -147,24 +147,25 @@ Delivery Location: ${location}`;
             <p className="text-[rgba(255,255,255,0.7)] text-[17px] md:text-[18px] leading-[1.8] max-w-[460px] mt-[20px]">
               Experience the finest quality poultry, raised with care and delivered fresh daily from our farm to your table.
             </p>
-
-            <div className="flex flex-col sm:flex-row gap-[14px] mt-[40px] w-full sm:w-auto">
-              <a href="#checkout" className="bg-[#FFDE1A] text-[#133813] rounded-xl px-[32px] py-[16px] text-base font-bold shadow-[0_4px_20px_rgba(255,222,26,0.3)] hover:bg-[#e6c710] hover:-translate-y-[1px] transition-all text-center">
-                Order Now
-              </a>
-              <Link href="/about" className="bg-transparent text-white border-2 border-[rgba(255,255,255,0.25)] rounded-xl px-[32px] py-[16px] text-base font-semibold hover:border-[rgba(255,255,255,0.6)] transition-all text-center">
-                Our Story
-              </Link>
-            </div>
           </div>
 
-          {/* RIGHT SIDE */}
-          <div className="flex justify-center items-center py-8 md:py-0 order-first md:order-last">
+          {/* PHOTO */}
+          <div className="flex justify-center items-center py-8 md:py-0 order-2 md:order-2 md:col-start-2 md:row-start-1 md:row-span-2">
             <div className="relative w-[340px] h-[340px] md:w-[480px] md:h-[480px] border border-[rgba(255,222,26,0.18)] rounded-full flex items-center justify-center">
               <div className="w-[295px] h-[295px] md:w-[420px] md:h-[420px] bg-[rgba(255,222,26,0.06)] border border-[rgba(255,222,26,0.1)] rounded-full overflow-hidden relative">
                 <Image src="/full.png" alt="Farm Fresh Chicken" fill className="object-cover" />
               </div>
             </div>
+          </div>
+
+          {/* CTA BUTTONS */}
+          <div className="flex flex-col sm:flex-row gap-[14px] mt-4 md:mt-[40px] w-full sm:w-auto order-3 md:order-3 md:col-start-1 md:row-start-2 md:self-start">
+            <a href="#checkout" className="bg-[#FFDE1A] text-[#133813] rounded-xl px-[32px] py-[16px] text-base font-bold shadow-[0_4px_20px_rgba(255,222,26,0.3)] hover:bg-[#e6c710] hover:-translate-y-[1px] transition-all text-center">
+              Order Now
+            </a>
+            <Link href="/about" className="bg-transparent text-white border-2 border-[rgba(255,255,255,0.25)] rounded-xl px-[32px] py-[16px] text-base font-semibold hover:border-[rgba(255,255,255,0.6)] transition-all text-center">
+              Our Story
+            </Link>
           </div>
         </div>
       </section>
@@ -173,7 +174,7 @@ Delivery Location: ${location}`;
       <section id="products" className="bg-[#f5f5f0] py-[100px] px-6 md:px-[60px]">
         <div className="max-w-4xl mx-auto">
           <div className="text-center">
-            <span className="inline-block bg-[rgba(255,222,26,0.15)] border border-[rgba(255,222,26,0.3)] text-[#FFDE1A] text-[9px] font-bold px-3 py-1.5 rounded-full tracking-widest uppercase mb-4">OUR PRODUCTS</span>
+            <span className="inline-block bg-[rgba(0,100,0,0.08)] border border-[rgba(0,100,0,0.15)] text-[#006400] text-[9px] font-bold px-3 py-1.5 rounded-full tracking-widest uppercase mb-4">OUR PRODUCTS</span>
             <h2 className="font-['Cormorant_Garamond',serif] text-[48px] font-bold text-[#1a1814] leading-tight">Fresh from the Farm</h2>
             <p className="text-[#9a9890] text-[15px] mt-2">Quality you can taste, freshness you can trust.</p>
           </div>
