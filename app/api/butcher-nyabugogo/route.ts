@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prependRow, getRows } from '../../../lib/sheets';
 import { formatDate, formatTime } from '../../../lib/utils';
-import admin from '../../lib/firebase-admin';
+import admin from '../../../lib/firebase-admin';
 
 export const dynamic = 'force-dynamic';
 

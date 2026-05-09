@@ -1,13 +1,8 @@
 import { NextResponse } from 'next/server';
 import { getRows } from '../../../../lib/sheets';
-import admin from '../../../lib/firebase-admin';
+import admin from '../../../../lib/firebase-admin';
 
 export const dynamic = 'force-dynamic';
-
- catch (err) {
-    console.warn("Firebase Admin failed to initialize during static generation:", err);
-  }
-}
 function parseNum(val: unknown): number {
   if (typeof val === 'number') return isNaN(val) ? 0 : val;
   if (typeof val === 'string') {

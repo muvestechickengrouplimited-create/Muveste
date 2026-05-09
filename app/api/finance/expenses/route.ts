@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getRows } from '../../../../lib/sheets';
-import admin from '../../../lib/firebase-admin';
+import admin from '../../../../lib/firebase-admin';
 import { google } from 'googleapis';
 
 export const dynamic = 'force-dynamic';
