@@ -975,11 +975,10 @@ export default function FinanceDashboard() {
       ) : (
         <>
           {period === 'daily' ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 animate-in fade-in duration-300">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 animate-in fade-in duration-300">
               <StatCard title="Total revenue today" value={formatRWF(displayTotalRev)} icon={<RevenueIcon />} className="border-l-4 border-[#1B6B3A]" />
               <StatCard title="Total expenses today" value={formatRWF(displayTotalExp)} icon={<ExpenseIcon />} className="border-l-4 border-[#F5C518]" />
               <StatCard title="Net profit today" value={formatRWF(displayNetProfit)} icon={<ProfitIcon />} className={`border-l-4 ${displayNetProfit >= 0 ? 'border-[#1B6B3A]' : 'border-[#D9534F]'}`} />
-              <StatCard title="Departments reported" value={`${reportedCount} / 5`} icon={<DocumentIcon />} className="border-l-4 border-[#E07B00]" />
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 animate-in fade-in duration-300">

@@ -96,8 +96,8 @@ export function Sidebar() {
   // but Layout handles the actual protection.
   if (!user) {
     return (
-      <aside className="fixed md:sticky top-0 left-0 h-full md:h-screen z-40 w-[240px] bg-[#006400] text-white">
-        <div className="flex h-16 items-center px-6 border-b border-[#15542d]">
+      <aside className="fixed top-0 left-0 h-full z-40 w-[240px] bg-[#228B22] text-white">
+        <div className="flex h-16 items-center px-6 border-b border-[#1A6E1A]">
           <h1 className="text-xl font-bold tracking-tight text-white">
             Mu<span className="text-[#F5C518]">veste</span>
           </h1>
@@ -116,7 +116,7 @@ export function Sidebar() {
       <button
         onClick={() => setOpen(!open)}
         className="md:hidden fixed top-4 left-4 
-                   z-50 w-10 h-10 bg-[#006400] 
+                   z-50 w-10 h-10 bg-[#228B22] 
                    rounded-xl flex items-center 
                    justify-center"
       >
@@ -139,16 +139,16 @@ export function Sidebar() {
       {/* Sidebar: */}
       <aside
         className={`
-          fixed md:sticky top-0 left-0 
-          h-full md:h-screen z-40
-          w-[240px] bg-[#006400] text-white flex flex-col
+          fixed top-0 left-0 
+          h-full z-40
+          w-[240px] bg-[#228B22] text-white flex flex-col
           transform transition-transform duration-300
           ${open 
             ? 'translate-x-0' 
             : '-translate-x-full md:translate-x-0'}
         `}
       >
-        <div className="flex h-16 items-center px-6 border-b border-[#15542d]">
+        <div className="flex h-16 items-center px-6 border-b border-[#1A6E1A]">
           <h1 className="text-xl font-bold tracking-tight text-white">
             Mu<span className="text-[#F5C518]">veste</span>
           </h1>
@@ -169,8 +169,8 @@ export function Sidebar() {
                   className={cn(
                     'group flex items-center rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
                     isActive
-                      ? 'bg-[#15542d] text-[#F5C518]'
-                      : 'text-gray-100 hover:bg-[#15542d] hover:text-white'
+                      ? 'bg-[#1A6E1A] text-[#F5C518]'
+                      : 'text-gray-100 hover:bg-[#1A6E1A] hover:text-white'
                   )}
                 >
                   <span className={cn(
@@ -186,7 +186,7 @@ export function Sidebar() {
           </nav>
         </div>
 
-        <div className="p-4 border-t border-[#15542d]">
+        <div className="p-4 border-t border-[#1A6E1A]">
           <div className="flex items-center space-x-3 px-2">
             <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-[#E07B00] text-white font-bold text-lg">
               {user.email.charAt(0).toUpperCase()}

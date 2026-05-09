@@ -688,11 +688,10 @@ export default function AdminOverview() {
       ) : (
         <>
           {/* ═══ SECTION 1 — TOP STAT CARDS ═══ */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             <StatCard title="Total revenue" value={formatRWF(totalRevenue)} color="green" sub="RWF today" />
             <StatCard title="Total expenses" value={formatRWF(totalExpenses)} color="orange" sub="RWF today" />
             <StatCard title="Net profit" value={formatRWF(netProfit)} color={netProfit >= 0 ? 'green' : 'red'} sub="RWF today" />
-            <StatCard title="Active depts" value={`${activeDepts} / 5`} color={activeDeptColor} sub="reported today" />
           </div>
 
           {/* ═══ SECTION 2 — DEPARTMENT CARDS ═══ */}
