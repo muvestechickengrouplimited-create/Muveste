@@ -40,7 +40,7 @@ export function Navbar() {
     };
 
     return (
-      <header className="sticky top-0 z-30 flex h-16 w-full items-center justify-between bg-white px-6 shadow-[0_2px_12px_rgba(0,0,0,0.04)] border-b border-gray-100">
+      <header className="sticky top-0 z-30 flex h-16 w-full items-center justify-between bg-white pl-14 pr-6 md:px-6 shadow-[0_2px_12px_rgba(0,0,0,0.04)] border-b border-gray-100">
         <div className="flex items-center gap-4">
           <h2 className="text-xl font-bold text-[#111827] tracking-tight">
             {getPageTitle(pathname)}
