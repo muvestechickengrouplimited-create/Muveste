@@ -44,21 +44,18 @@ interface FinanceRow {
   totalRevenue: number;
   totalExpenses: number;
   netProfit: number;
-  eggFarmRevenue?: number;
-  eggFarmExpenses?: number;
-  eggFarmProfit?: number;
   broilerRevenue?: number;
   broilerExpenses?: number;
   broilerProfit?: number;
-  kioskBatsindaRevenue?: number;
-  kioskBatsindaExpenses?: number;
-  kioskBatsindaProfit?: number;
-  kioskNyabugogoRevenue?: number;
-  kioskNyabugogoExpenses?: number;
-  kioskNyabugogoProfit?: number;
-  butcherRevenue?: number;
-  butcherExpenses?: number;
-  butcherProfit?: number;
+  kibungoRevenue?: number;
+  kibungoExpenses?: number;
+  kibungoProfit?: number;
+  rwamaganaRevenue?: number;
+  rwamaganaExpenses?: number;
+  rwamaganaProfit?: number;
+  nyabugogoRevenue?: number;
+  nyabugogoExpenses?: number;
+  nyabugogoProfit?: number;
 }
 
 
@@ -901,26 +898,23 @@ export default function AdminOverview() {
                         </thead>
                         <tbody className="divide-y divide-gray-100">
                           {(() => {
-                            let efRev = 0, efExp = 0, efProf = 0;
                             let bfRev = 0, bfExp = 0, bfProf = 0;
-                            let kBatRev = 0, kBatExp = 0, kBatProf = 0;
+                            let kKibRev = 0, kKibExp = 0, kKibProf = 0;
+                            let kRwaRev = 0, kRwaExp = 0, kRwaProf = 0;
                             let kNyaRev = 0, kNyaExp = 0, kNyaProf = 0;
-                            let buRev = 0, buExp = 0, buProf = 0;
 
                             filtered.forEach((r: FinanceRow) => {
-                              efRev += Number(r.eggFarmRevenue) || 0; efExp += Number(r.eggFarmExpenses) || 0; efProf += Number(r.eggFarmProfit) || 0;
                               bfRev += Number(r.broilerRevenue) || 0; bfExp += Number(r.broilerExpenses) || 0; bfProf += Number(r.broilerProfit) || 0;
-                              kBatRev += Number(r.kioskBatsindaRevenue) || 0; kBatExp += Number(r.kioskBatsindaExpenses) || 0; kBatProf += Number(r.kioskBatsindaProfit) || 0;
-                              kNyaRev += Number(r.kioskNyabugogoRevenue) || 0; kNyaExp += Number(r.kioskNyabugogoExpenses) || 0; kNyaProf += Number(r.kioskNyabugogoProfit) || 0;
-                              buRev += Number(r.butcherRevenue) || 0; buExp += Number(r.butcherExpenses) || 0; buProf += Number(r.butcherProfit) || 0;
+                              kKibRev += Number(r.kibungoRevenue) || 0; kKibExp += Number(r.kibungoExpenses) || 0; kKibProf += Number(r.kibungoProfit) || 0;
+                              kRwaRev += Number(r.rwamaganaRevenue) || 0; kRwaExp += Number(r.rwamaganaExpenses) || 0; kRwaProf += Number(r.rwamaganaProfit) || 0;
+                              kNyaRev += Number(r.nyabugogoRevenue) || 0; kNyaExp += Number(r.nyabugogoExpenses) || 0; kNyaProf += Number(r.nyabugogoProfit) || 0;
                             });
 
                             const depts = [
-                              { name: 'Egg Farm', rev: efRev, exp: efExp, prof: efProf },
                               { name: 'Broiler Farm', rev: bfRev, exp: bfExp, prof: bfProf },
-                              { name: 'Kiosk Batsinda', rev: kBatRev, exp: kBatExp, prof: kBatProf },
-                              { name: 'Kiosk Nyabugogo', rev: kNyaRev, exp: kNyaExp, prof: kNyaProf },
-                              { name: 'Butchery', rev: buRev, exp: buExp, prof: buProf },
+                              { name: 'Butchery (Kibungo)', rev: kKibRev, exp: kKibExp, prof: kKibProf },
+                              { name: 'Butchery (Rwamagana)', rev: kRwaRev, exp: kRwaExp, prof: kRwaProf },
+                              { name: 'Butchery (Nyabugogo)', rev: kNyaRev, exp: kNyaExp, prof: kNyaProf },
                             ];
 
                             return depts.map((d, i) => (

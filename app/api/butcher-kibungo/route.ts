@@ -50,6 +50,7 @@ export async function POST(request: Request) {
     // Role check: Only butcher or admin can submit
     const isAuthorized =
       userEmail === 'butchery-kibungo@muveste.com' ||
+      userEmail === 'butcher-kibungo@muveste.com' ||
       userEmail === 'admin@muveste.com';
     if (!isAuthorized) {
       return NextResponse.json(

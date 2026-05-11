@@ -25,8 +25,11 @@ const ROLE_DASHBOARDS: Record<string, string> = {
 const ROLE_MAP: Record<string, UserRole> = {
   'broiler@muveste.com': 'broiler_farm',
   'butchery-kibungo@muveste.com': 'butcher_kibungo',
+  'butcher-kibungo@muveste.com': 'butcher_kibungo',
   'butchery-rwamagana@muveste.com': 'butcher_rwamagana',
+  'butcher-rwamagana@muveste.com': 'butcher_rwamagana',
   'butchery-nyabugogo@muveste.com': 'butcher_nyabugogo',
+  'butcher-nyabugogo@muveste.com': 'butcher_nyabugogo',
   'finance@muveste.com': 'finance',
   'admin@muveste.com': 'admin',
 };
@@ -57,7 +60,7 @@ export default function LoginPage() {
 
       const role = ROLE_MAP[cleanEmail];
       if (!role) {
-        toast('Login successful, but your account is not mapped to any dashboard.', 'error');
+        toast(`Login successful, but ${cleanEmail} is not mapped to any dashboard.`, 'error');
         // Sign out if they shouldn't be here?
         // await auth.signOut();
         router.push('/');

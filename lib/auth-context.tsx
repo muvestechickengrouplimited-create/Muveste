@@ -16,8 +16,11 @@ const AuthContext = createContext<AuthContextType>({ user: null, loading: true }
 const ROLE_MAP: Record<string, UserRole> = {
   'broiler@muveste.com': 'broiler_farm',
   'butchery-kibungo@muveste.com': 'butcher_kibungo',
+  'butcher-kibungo@muveste.com': 'butcher_kibungo',
   'butchery-rwamagana@muveste.com': 'butcher_rwamagana',
+  'butcher-rwamagana@muveste.com': 'butcher_rwamagana',
   'butchery-nyabugogo@muveste.com': 'butcher_nyabugogo',
+  'butcher-nyabugogo@muveste.com': 'butcher_nyabugogo',
   'finance@muveste.com': 'finance',
   'admin@muveste.com': 'admin',
 };
