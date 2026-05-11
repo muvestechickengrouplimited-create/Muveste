@@ -49,9 +49,8 @@ export async function POST(request: Request) {
 
     // Role check: Only butcher or admin can submit
     const isAuthorized =
-      userEmail === 'butchery-rwamagana@muveste.com' ||
-      userEmail === 'butcher-rwamagana@muveste.com' ||
-      userEmail === 'admin@muveste.com';
+      userEmail.includes('rwamagana') ||
+      userEmail.includes('admin');
     if (!isAuthorized) {
       return NextResponse.json(
         { error: 'Forbidden: Insufficient permissions for butcher' },

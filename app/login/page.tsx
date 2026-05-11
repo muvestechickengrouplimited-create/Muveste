@@ -58,7 +58,18 @@ export default function LoginPage() {
       // Firebase will handle the actual secure Client SDK token verification.
       document.cookie = `session=true; path=/; max-age=86400; SameSite=Lax`;
 
-      const role = ROLE_MAP[cleanEmail];
+      let role = ROLE_MAP[cleanEmail];
+      
+      // Fallback: Smart matching in case of typos in Firebase Auth (e.g. .rw instead of .com, dots instead of dashes)
+      if (!role) {
+        if (cleanEmail.includes('kibungo')) role = 'butcher_kibungo';
+        else if (cleanEmail.includes('rwamagana')) role = 'butcher_rwamagana';
+        else if (cleanEmail.includes('nyabugogo')) role = 'butcher_nyabugogo';
+        else if (cleanEmail.includes('broiler')) role = 'broiler_farm';
+        else if (cleanEmail.includes('finance')) role = 'finance';
+        else if (cleanEmail.includes('admin')) role = 'admin';
+      }
+
       if (!role) {
         toast(`Login successful, but ${cleanEmail} is not mapped to any dashboard.`, 'error');
         // Sign out if they shouldn't be here?

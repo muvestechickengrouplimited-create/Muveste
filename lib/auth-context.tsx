@@ -37,7 +37,19 @@ const roleRoutes: Record<string, string> = {
 
 function getRoleFromEmail(email: string | null): UserRole | null {
   if (!email) return null;
-  return ROLE_MAP[email.trim().toLowerCase()] || null;
+  const cleanEmail = email.trim().toLowerCase();
+  
+  if (ROLE_MAP[cleanEmail]) return ROLE_MAP[cleanEmail];
+  
+  // Smart fallback mapping
+  if (cleanEmail.includes('kibungo')) return 'butcher_kibungo';
+  if (cleanEmail.includes('rwamagana')) return 'butcher_rwamagana';
+  if (cleanEmail.includes('nyabugogo')) return 'butcher_nyabugogo';
+  if (cleanEmail.includes('broiler')) return 'broiler_farm';
+  if (cleanEmail.includes('finance')) return 'finance';
+  if (cleanEmail.includes('admin')) return 'admin';
+
+  return null;
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
