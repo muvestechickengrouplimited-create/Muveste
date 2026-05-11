@@ -19,17 +19,23 @@ const PhoneIcon = () => (
 );
 
 export default function HomePage() {
+  const [selectedLocation, setSelectedLocation] = useState<string | null>(null);
   const [products, setProducts] = useState<any[]>([]);
-  const [loadingPrices, setLoadingPrices] = useState(true);
-  const [selectedProduct, setSelectedProduct] = useState<string>('Full Chicken');
+  const [loadingPrices, setLoadingPrices] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<any>(null);
   const [qty, setQty] = useState(1);
   const [customerName, setCustomerName] = useState('');
   const [phone, setPhone] = useState('');
   const [location, setLocation] = useState('');
-  const [selectedButcher, setSelectedButcher] = useState('Rwamagana Butcher');
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   
   const checkoutRef = useRef<HTMLDivElement>(null);
+
+  const locations = [
+    { id: 'Kibungo',   label: 'Kibungo',   desc: 'Eastern Province' },
+    { id: 'Rwamagana', label: 'Rwamagana', desc: 'Eastern Province' },
+    { id: 'Nyabugogo', label: 'Nyabugogo', desc: 'Kigali' },
+  ];
 
   const [formData, setFormData] = useState({ name: '', email: '', phone: '', subject: '', message: '' });
   const [sending, setSending] = useState(false);
@@ -37,19 +43,19 @@ export default function HomePage() {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    fetch('/api/products')
+    if (!selectedLocation) return
+    setLoadingPrices(true)
+    fetch(`/api/products?location=${selectedLocation}`)
       .then(r => r.json())
       .then(data => {
-        if (data.success) {
-          setProducts(data.products)
-        }
+        if (data.success) setProducts(data.products)
       })
       .catch(() => {})
       .finally(() => setLoadingPrices(false))
-  }, [])
+  }, [selectedLocation])
 
-  const handleOrderClick = (productName: string) => {
-    setSelectedProduct(productName);
+  const handleOrderClick = (product: any) => {
+    setSelectedProduct(product);
     setQty(1);
     setIsCheckoutOpen(true);
     setTimeout(() => {
@@ -57,35 +63,27 @@ export default function HomePage() {
     }, 100);
   };
 
-  const getProduct = (category: string) => {
-    return products.find((p: any) => p.category === category);
-  };
-
-  const getPrice = (category: string) => {
-    return 4500;
-  };
-
-  // Find chicken meat price:
-  const chickenProduct = products.find(
-    (p: any) => p.category === 'meat')
-
   const quantity = qty;
-
-  // Use in checkout total calculation:
-  const unitPrice = (selectedProduct === 'meat' || selectedProduct === 'Full Chicken' || selectedProduct === 'Chicken Cut')
-    ? chickenProduct?.price ?? 0
-    : 0
-
+  const unitPrice = selectedProduct?.price ?? 0;
   const totalPrice = quantity * unitPrice;
 
-  const whatsappMessage = `Hello Muveste! 
-Product: ${selectedProduct}
-Quantity: ${qty} kg
-Total: RWF ${totalPrice.toLocaleString()}
-Name: ${customerName}
-Phone: ${phone}
-Nearest Butcher: ${selectedButcher}
-Delivery Location: ${location}`;
+  const whatsappNumbers: Record<string, string> = {
+    Kibungo  : '250788227587',
+    Rwamagana: '250788227587',
+    Nyabugogo: '250788227587',
+  }
+  
+  const whatsappNumber = selectedLocation ? (whatsappNumbers[selectedLocation] ?? '250788227587') : '250788227587';
+
+  const whatsappMessage = 
+    `Hello Muveste!\n` +
+    `Branch: ${selectedLocation}\n` +
+    `Product: ${selectedProduct?.name}\n` +
+    `Quantity: ${quantity} kg\n` +
+    `Total: RWF ${totalPrice.toLocaleString()}\n` +
+    `Name: ${customerName}\n` +
+    `Phone: ${phone}\n` +
+    `Location: ${location}`;
 
   const sendEmail = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -179,70 +177,146 @@ Delivery Location: ${location}`;
             <p className="text-[#9a9890] text-[15px] mt-2">Quality you can taste, freshness you can trust.</p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-[28px] mt-[56px]">
-            {/* Full Chicken Card */}
-            <div className="bg-white rounded-[24px] overflow-hidden border-[0.5px] border-[#e8e6e0] hover:-translate-y-[8px] hover:border-[rgba(34,139,34,0.2)] hover:shadow-[0_20px_60px_rgba(34,139,34,0.1)] transition-all duration-400 group">
-              <div className="h-[260px] bg-[#fafaf8] relative border-b-[0.5px] border-[#e8e6e0]">
-                <Image src="/full.png" alt="Full Chicken" fill className="object-cover" />
-                <div className="absolute top-0 left-0 bg-[#FFDE1A] text-black text-[9px] font-bold tracking-widest uppercase px-[16px] py-[8px] rounded-[0_0_14px_0]">
-                  BEST SELLER
-                </div>
-              </div>
-              <div className="p-[28px] flex flex-col">
-                <h3 className="font-['Cormorant_Garamond',serif] text-[26px] text-[#1a1814] font-bold">Full Chicken</h3>
-                <p className="text-[#9a9890] text-[13px] mt-[8px] mb-[20px] leading-relaxed">
-                  Fresh, premium quality whole chicken prepared directly from our farms and packaged daily.
-                </p>
-                <div className="h-[0.5px] bg-[#e8e6e0] mb-[20px]" />
-                <div className="flex justify-between items-center">
-                  <div>
-                    {loadingPrices ? (
-                      <div className="animate-pulse bg-gray-100 rounded h-8 w-24"/>
-                    ) : (
-                      <p className="font-['Cormorant_Garamond'] text-3xl font-bold text-[#006400]">
-                        RWF {chickenProduct?.price?.toLocaleString() ?? '—'}
-                      </p>
-                    )}
-                    <span className="text-[#9a9890] text-[12px] block">per kg</span>
-                  </div>
-                  <button onClick={() => handleOrderClick('Full Chicken')} className="bg-[#FFDE1A] text-black rounded-[10px] px-[24px] py-[10px] text-[14px] font-bold hover:bg-[#e6c710] transition-colors duration-300 shadow-sm">
-                    Order Now
+          <div className="mt-[56px]">
+            {/* Location selector (show first) */}
+            <div className="text-center mb-12">
+              <p className="text-sm text-gray-500 mb-4">
+                Select your nearest location to see prices
+              </p>
+              <div className="flex justify-center gap-4 flex-wrap">
+                {locations.map(loc => (
+                  <button
+                    key={loc.id}
+                    onClick={() => setSelectedLocation(loc.id)}
+                    className={`px-6 py-3 rounded-xl text-sm font-semibold transition-all border-2 ${selectedLocation === loc.id
+                        ? 'bg-[#006400] text-white border-[#006400]'
+                        : 'bg-white text-[#006400] border-[#006400]/30 hover:border-[#006400]'
+                      }`}>
+                    📍 {loc.label}
+                    <span className="block text-xs font-normal opacity-70">
+                      {loc.desc}
+                    </span>
                   </button>
-                </div>
+                ))}
               </div>
             </div>
 
-            {/* Chicken Cut Card */}
-            <div className="bg-white rounded-[24px] overflow-hidden border-[0.5px] border-[#e8e6e0] hover:-translate-y-[8px] hover:border-[rgba(34,139,34,0.2)] hover:shadow-[0_20px_60px_rgba(34,139,34,0.1)] transition-all duration-400 group">
-              <div className="h-[260px] bg-[#fafaf8] relative border-b-[0.5px] border-[#e8e6e0]">
-                <Image src="/cut.png" alt="Chicken Cut" fill className="object-cover" />
-                <div className="absolute top-0 left-0 bg-[#FFDE1A] text-black text-[9px] font-bold tracking-widest uppercase px-[16px] py-[8px] rounded-[0_0_14px_0]">
-                  FRESH TODAY
-                </div>
-              </div>
-              <div className="p-[28px] flex flex-col">
-                <h3 className="font-['Cormorant_Garamond',serif] text-[26px] text-[#1a1814] font-bold">Chicken Cut</h3>
-                <p className="text-[#9a9890] text-[13px] mt-[8px] mb-[20px] leading-relaxed">
-                  Expertly portioned fresh chicken cuts, professionally cleaned and ready for your culinary recipes.
-                </p>
-                <div className="h-[0.5px] bg-[#e8e6e0] mb-[20px]" />
-                <div className="flex justify-between items-center">
-                  <div>
-                    {loadingPrices ? (
-                      <div className="animate-pulse bg-gray-100 rounded h-8 w-24"/>
-                    ) : (
-                      <p className="font-['Cormorant_Garamond'] text-3xl font-bold text-[#006400]">
-                        RWF {chickenProduct?.price?.toLocaleString() ?? '—'}
+            {!selectedLocation ? (
+              // No location selected
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+                {['Full Chicken', 'Chicken Cut'].map(name => (
+                  <div key={name} className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+                    <div className="h-56 bg-[#fafaf8] flex items-center justify-center relative border-b border-gray-100">
+                      <Image 
+                        src={name === 'Full Chicken' ? "/full.png" : "/cut.png"} 
+                        alt={name}
+                        fill
+                        className="object-cover"
+                      />
+                    </div>
+                    <div className="p-6">
+                      <h3 className="font-['Cormorant_Garamond'] text-2xl font-bold text-[#1a1814] mb-2">
+                        {name}
+                      </h3>
+                      <p className="text-sm text-gray-400 mb-4">
+                        Select a location above to see price
                       </p>
-                    )}
-                    <span className="text-[#9a9890] text-[12px] block">per kg</span>
+                      <div className="bg-[#f5f5f0] rounded-xl p-4 text-center">
+                        <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">
+                          Select location for price
+                        </p>
+                        <div className="flex gap-3 justify-center mt-3">
+                          {locations.map(loc => (
+                            <button
+                              key={loc.id}
+                              onClick={() => {
+                                setSelectedLocation(loc.id)
+                                document.getElementById('products')?.scrollIntoView({behavior:'smooth'})
+                              }}
+                              className="text-xs bg-[#006400] text-white px-3 py-1.5 rounded-lg font-semibold">
+                              {loc.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                  <button onClick={() => handleOrderClick('Chicken Cut')} className="bg-[#FFDE1A] text-black rounded-[10px] px-[24px] py-[10px] text-[14px] font-bold hover:bg-[#e6c710] transition-colors duration-300 shadow-sm">
-                    Order Now
+                ))}
+              </div>
+            ) : (
+              // Location selected
+              <div>
+                <div className="flex items-center justify-center gap-3 mb-8">
+                  <p className="text-sm text-gray-500">Showing prices for</p>
+                  <span className="bg-[#006400] text-white text-sm font-bold px-4 py-1.5 rounded-full">
+                    📍 {selectedLocation}
+                  </span>
+                  <button
+                    onClick={() => {
+                      setSelectedLocation(null)
+                      setProducts([])
+                    }}
+                    className="text-xs text-gray-400 underline hover:text-gray-600">
+                    Change location
                   </button>
                 </div>
+
+                {loadingPrices ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+                    {[1,2].map(i => (
+                      <div key={i} className="bg-white rounded-2xl border border-gray-100 h-80 animate-pulse"/>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+                    {products.map(product => (
+                      <div key={product.id}
+                        className="bg-white rounded-2xl border border-gray-100 overflow-hidden hover:border-[#006400]/20 hover:-translate-y-2 transition-all duration-300">
+                        
+                        {/* Image */}
+                        <div className="h-56 bg-[#fafaf8] flex items-center justify-center relative border-b border-gray-100">
+                          <div className="absolute top-0 left-0 bg-[#D97706] text-white text-xs font-bold tracking-wide uppercase px-4 py-2 rounded-br-xl z-10">
+                            FRESH TODAY
+                          </div>
+                          <Image
+                            src={product.name.includes('Cut') || product.name === 'Chicken Cut' ? "/cut.png" : "/full.png"}
+                            alt={product.name}
+                            fill
+                            className="object-cover"
+                          />
+                        </div>
+
+                        {/* Body */}
+                        <div className="p-6">
+                          <h3 className="font-['Cormorant_Garamond'] text-2xl font-bold text-[#1a1814] mb-2">
+                            {product.name}
+                          </h3>
+                          <p className="text-sm text-gray-400 mb-4">
+                            Fresh from our farm daily
+                          </p>
+                          <div className="h-px bg-gray-100 mb-4"/>
+                          <div className="flex justify-between items-center">
+                            <div>
+                              <p className="font-['Cormorant_Garamond'] text-3xl font-bold text-[#006400]">
+                                RWF {product.price.toLocaleString()}
+                              </p>
+                              <p className="text-xs text-gray-400">per kg</p>
+                            </div>
+                            <button
+                              onClick={() => {
+                                handleOrderClick(product)
+                              }}
+                              className="bg-[#006400] text-white rounded-xl px-6 py-3 text-sm font-semibold hover:bg-[#D97706] transition-all duration-300">
+                              Order Now
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
-            </div>
+            )}
           </div>
         </div>
       </section>
@@ -270,6 +344,14 @@ Delivery Location: ${location}`;
               <div className="bg-[#f5f5f0] rounded-[20px] p-[32px]">
                 <h3 className="font-['Cormorant_Garamond',serif] text-[20px] text-[#1a1814] font-bold mb-6">Delivery Details</h3>
                 
+                {selectedLocation && (
+                  <div className="bg-[#e8f5e8] rounded-xl p-3 mb-4 flex items-center gap-2">
+                    <span className="text-xs font-bold text-[#006400]">
+                      📍 {selectedLocation} Branch
+                    </span>
+                  </div>
+                )}
+                
                 <div className="space-y-5">
                   <div>
                     <label className="block text-[#9a9890] text-[10px] font-semibold uppercase tracking-widest mb-2">Full Name</label>
@@ -282,20 +364,6 @@ Delivery Location: ${location}`;
                   </div>
 
                   <div>
-                    <label className="block text-[#9a9890] text-[10px] font-semibold uppercase tracking-widest mb-2">Nearest Butcher Outlet</label>
-                    <div className="relative">
-                      <select value={selectedButcher} onChange={e => setSelectedButcher(e.target.value)} className="w-full bg-white border-[1.5px] border-[#e8e6e0] rounded-[12px] px-4 py-3 text-[14px] text-[#1a1814] focus:outline-none focus:border-[#FFDE1A] focus:ring-[3px] focus:ring-[rgba(255,222,26,0.15)] transition-all appearance-none">
-                        <option value="Rwamagana Butcher">Rwamagana Butcher</option>
-                        <option value="Nyabugogo Butcher">Nyabugogo Butcher</option>
-                        <option value="Kibungo Butcher">Kibungo Butcher</option>
-                      </select>
-                      <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-[#9a9890]">
-                        ▼
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div>
                     <label className="block text-[#9a9890] text-[10px] font-semibold uppercase tracking-widest mb-2">Delivery Location / Address</label>
                     <input type="text" value={location} onChange={e => setLocation(e.target.value)} className="w-full bg-white border-[1.5px] border-[#e8e6e0] rounded-[12px] px-4 py-3 text-[14px] text-[#1a1814] placeholder-[#c0beb8] focus:outline-none focus:border-[#FFDE1A] focus:ring-[3px] focus:ring-[rgba(255,222,26,0.15)] transition-all" placeholder="Enter delivery location" />
                   </div>
@@ -304,9 +372,13 @@ Delivery Location: ${location}`;
                     <div>
                       <label className="block text-[#9a9890] text-[10px] font-semibold uppercase tracking-widest mb-2">Product</label>
                       <div className="relative">
-                        <select value={selectedProduct} onChange={(e) => setSelectedProduct(e.target.value)} className="w-full bg-white border-[1.5px] border-[#e8e6e0] rounded-[12px] px-4 py-3 text-[14px] text-[#1a1814] focus:outline-none focus:border-[#FFDE1A] focus:ring-[3px] focus:ring-[rgba(255,222,26,0.15)] transition-all appearance-none">
-                          <option value="Full Chicken">Full Chicken</option>
-                          <option value="Chicken Cut">Chicken Cut</option>
+                        <select value={selectedProduct?.name || ''} onChange={(e) => {
+                          const prod = products.find(p => p.name === e.target.value);
+                          if (prod) setSelectedProduct(prod);
+                        }} className="w-full bg-white border-[1.5px] border-[#e8e6e0] rounded-[12px] px-4 py-3 text-[14px] text-[#1a1814] focus:outline-none focus:border-[#FFDE1A] focus:ring-[3px] focus:ring-[rgba(255,222,26,0.15)] transition-all appearance-none">
+                          {products.map(p => (
+                            <option key={p.id} value={p.name}>{p.name}</option>
+                          ))}
                         </select>
                         <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-[#9a9890]">
                           ▼
@@ -337,7 +409,7 @@ Delivery Location: ${location}`;
 
                 <div className="bg-[rgba(255,222,26,0.06)] border border-[rgba(255,222,26,0.25)] rounded-[14px] p-[16px] mb-6">
                   <div className="flex justify-between items-center text-white text-[14px]">
-                    <span className="font-semibold">{selectedProduct}</span>
+                    <span className="font-semibold">{selectedProduct?.name}</span>
                     <span className="text-[rgba(255,255,255,0.6)]">x {qty} kg</span>
                     <span className="font-bold text-[#FFDE1A]">RWF {totalPrice.toLocaleString()}</span>
                   </div>
@@ -345,8 +417,7 @@ Delivery Location: ${location}`;
 
                 <button 
                   onClick={() => {
-                    const number = '250785329989';
-                    window.open(`https://wa.me/${number}?text=${encodeURIComponent(whatsappMessage)}`, '_blank');
+                    window.open(`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(whatsappMessage)}`, '_blank');
                     setIsCheckoutOpen(false);
                   }}
                   className="bg-[#25D366] text-white rounded-[14px] w-full py-[16px] text-[14px] font-bold flex justify-center items-center gap-2 mb-3 hover:bg-[#128C7E] transition-colors"
@@ -356,7 +427,7 @@ Delivery Location: ${location}`;
 
                 <button 
                   onClick={() => {
-                    window.location.href = "tel:+250785329989";
+                    window.location.href = `tel:+${whatsappNumber}`;
                     setIsCheckoutOpen(false);
                   }}
                   className="bg-[#FFDE1A] text-black rounded-[14px] w-full py-[16px] text-[14px] font-bold flex justify-center items-center gap-2 hover:bg-[#e6c710] transition-colors shadow-sm"
@@ -495,13 +566,13 @@ Delivery Location: ${location}`;
               <div className="mt-8">
                 <p className="text-[#9a9890] text-[13px] mb-4">Follow us on</p>
                 <div className="flex gap-4">
-                  <a href="#" className="w-[40px] h-[40px] rounded-full border-[0.5px] border-[#e8e6e0] flex items-center justify-center text-[#228B22] hover:bg-[#228B22] hover:border-[#228B22] hover:text-white transition-all bg-white">
+                  <a href="https://www.facebook.com/profile.php?id=61589672757989&mibextid=rS40aB7S9Ucbxw6v" target="_blank" rel="noopener noreferrer" className="w-[40px] h-[40px] rounded-full border-[0.5px] border-[#e8e6e0] flex items-center justify-center text-[#228B22] hover:bg-[#228B22] hover:border-[#228B22] hover:text-white transition-all bg-white">
                     <svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.477 2 2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.878v-6.987h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.988C18.343 21.128 22 16.991 22 12c0-5.523-4.477-10-10-10z"/></svg>
                   </a>
-                  <a href="#" className="w-[40px] h-[40px] rounded-full border-[0.5px] border-[#e8e6e0] flex items-center justify-center text-[#228B22] hover:bg-[#228B22] hover:border-[#228B22] hover:text-white transition-all bg-white">
+                  <a href="https://www.instagram.com/muveste8/#" target="_blank" rel="noopener noreferrer" className="w-[40px] h-[40px] rounded-full border-[0.5px] border-[#e8e6e0] flex items-center justify-center text-[#228B22] hover:bg-[#228B22] hover:border-[#228B22] hover:text-white transition-all bg-white">
                     <svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24"><path fillRule="evenodd" d="M12.315 2c2.43 0 2.784.013 3.808.06 1.064.049 1.791.218 2.427.465a4.902 4.902 0 011.772 1.153 4.902 4.902 0 011.153 1.772c.247.636.416 1.363.465 2.427.048 1.067.06 1.407.06 4.123v.08c0 2.643-.012 2.987-.06 4.043-.049 1.064-.218 1.791-.465 2.427a4.902 4.902 0 01-1.153 1.772 4.902 4.902 0 01-1.772 1.153c-.636.247-1.363.416-2.427.465-1.067.048-1.407.06-4.123.06h-.08c-2.643 0-2.987-.012-4.043-.06-1.064-.049-1.791-.218-2.427-.465a4.902 4.902 0 01-1.772-1.153 4.902 4.902 0 01-1.153-1.772c-.247-.636-.416-1.363-.465-2.427-.047-1.024-.06-1.379-.06-3.808v-.63c0-2.43.013-2.784.06-3.808.049-1.064.218-1.791.465-2.427a4.902 4.902 0 011.153-1.772A4.902 4.902 0 015.45 2.525c.636-.247 1.363-.416 2.427-.465C8.901 2.013 9.256 2 11.685 2h.63zm-.081 1.802h-.468c-2.456 0-2.784.011-3.807.058-.975.045-1.504.207-1.857.344-.467.182-.8.398-1.15.748-.35.35-.566.683-.748 1.15-.137.353-.3.882-.344 1.857-.047 1.023-.058 1.351-.058 3.807v.468c0 2.456.011 2.784.058 3.807.045.975.207 1.504.344 1.857.182.466.399.8.748 1.15.35.35.683.566 1.15.748.353.137.882.3 1.857.344 1.054.048 1.37.058 4.041.058h.08c2.597 0 2.917-.01 3.96-.058.976-.045 1.505-.207 1.858-.344.466-.182.8-.398 1.15-.748.35-.35.566-.683.748-1.15.137-.353.3-.882.344-1.857.048-1.055.058-1.37.058-4.041v-.08c0-2.597-.01-2.917-.058-3.96-.045-.976-.207-1.505-.344-1.858a3.097 3.097 0 00-.748-1.15 3.098 3.098 0 00-1.15-.748c-.353-.137-.882-.3-1.857-.344-1.023-.047-1.351-.058-3.807-.058zM12 6.865a5.135 5.135 0 110 10.27 5.135 5.135 0 010-10.27zm0 1.802a3.333 3.333 0 100 6.666 3.333 3.333 0 000-6.666zm5.338-3.205a1.2 1.2 0 110 2.4 1.2 1.2 0 010-2.4z" clipRule="evenodd"/></svg>
                   </a>
-                  <a href="#" className="w-[40px] h-[40px] rounded-full border-[0.5px] border-[#e8e6e0] flex items-center justify-center text-[#228B22] hover:bg-[#228B22] hover:border-[#228B22] hover:text-white transition-all bg-white">
+                  <a href="https://twitter.com/Muvestechicken8" target="_blank" rel="noopener noreferrer" className="w-[40px] h-[40px] rounded-full border-[0.5px] border-[#e8e6e0] flex items-center justify-center text-[#228B22] hover:bg-[#228B22] hover:border-[#228B22] hover:text-white transition-all bg-white">
                     <svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
                   </a>
                 </div>

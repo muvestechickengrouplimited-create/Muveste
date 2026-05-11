@@ -28,13 +28,18 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Password must be at least 6 characters' }, { status: 400 });
     }
 
-    // 1. Get the target user's UID
-    const userRecord = await admin.auth().getUserByEmail(email);
-    
-    // 2. Update the password
-    await admin.auth().updateUser(userRecord.uid, {
-      password: newPassword
-    });
+    // 1 & 2. Try to update existing user, or create if they don't exist
+    try {
+      const userRecord = await admin.auth().getUserByEmail(email);
+      await admin.auth().updateUser(userRecord.uid, { password: newPassword });
+    } catch (userError: any) {
+      if (userError.code === 'auth/user-not-found') {
+        // Automatically create the user account if it doesn't exist yet
+        await admin.auth().createUser({ email, password: newPassword });
+      } else {
+        throw userError; // Re-throw other errors
+      }
+    }
 
     return NextResponse.json({ success: true, message: `Password updated successfully for ${email}` });
 

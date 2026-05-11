@@ -16,7 +16,9 @@ function parseNum(val: unknown): number {
 // Maps dept display name → sheet tab name
 const DEPT_MAP: Record<string, string> = {
   'Broiler Farm': 'broiler-farm',
-  'butcher': 'butcher',
+  'Butchery (Kibungo)': 'butcher-kibungo',
+  'Butchery (Rwamagana)': 'butcher-rwamagana',
+  'Butchery (Nyabugogo)': 'butcher-nyabugogo',
 };
 
 export async function GET(request: Request) {
@@ -114,7 +116,7 @@ export async function GET(request: Request) {
         });
       }
 
-      if (sheetName === 'butcher') {
+      if (sheetName.startsWith('butcher')) {
         // [date(0), meatRec(1), meatSold(2), priceKg(3), damaged(4), stockLeft(5), expenses(6), totalSales(7), profit(8), notes(9), by(10), ts(11)]
         return NextResponse.json({
           department: resolvedName,

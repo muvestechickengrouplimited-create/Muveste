@@ -75,11 +75,10 @@ function BirdIcon() {
 
 // ─── Config ─────────────────────────────────────────────────────────────────
 const DEPT_CONFIG: Record<string, { color: string; primaryLabel: string; primaryKey: string; sheetName: string }> = {
-  'Egg Farm': { color: '#1B6B3A', primaryLabel: 'Total eggs', primaryKey: 'totalEggs', sheetName: 'egg-farm' },
   'Broiler Farm': { color: '#E07B00', primaryLabel: 'Live birds', primaryKey: 'liveBirds', sheetName: 'broiler-farm' },
-  'Egg Kiosk Batsinda': { color: '#F5C518', primaryLabel: 'Trays sold', primaryKey: 'traysSold', sheetName: 'egg-kiosk' },
-  'Egg Kiosk Nyabugogo': { color: '#E07B00', primaryLabel: 'Trays sold', primaryKey: 'traysSold', sheetName: 'egg-kiosk' },
-  'butcher': { color: '#2D2D2D', primaryLabel: 'Meat sold', primaryKey: 'meatSold', sheetName: 'butcher' },
+  'Butchery (Kibungo)': { color: '#2D2D2D', primaryLabel: 'Meat sold', primaryKey: 'meatSold', sheetName: 'butcher-kibungo' },
+  'Butchery (Rwamagana)': { color: '#1B6B3A', primaryLabel: 'Meat sold', primaryKey: 'meatSold', sheetName: 'butcher-rwamagana' },
+  'Butchery (Nyabugogo)': { color: '#F5C518', primaryLabel: 'Meat sold', primaryKey: 'meatSold', sheetName: 'butcher-nyabugogo' },
 };
 
 function getDeptColor(name: string): string {
@@ -337,43 +336,40 @@ export default function AdminOverview() {
           { label: 'Kgs sold', value: parseNum(bfData[11]).toLocaleString() }
         ];
         
-        const batMetrics = [
-          { label: 'Trays received', value: batToday.reduce((sum, kr) => sum + parseNum(kr[2]), 0).toLocaleString() },
-          { label: 'Trays sold', value: batEggs.toLocaleString() },
-          { label: 'Damaged trays', value: batToday.reduce((sum, kr) => sum + parseNum(kr[5]), 0).toLocaleString() },
-          { label: 'Trays left', value: parseNum(batToday[0]?.[8]).toLocaleString() }
+        const bkData = dpts['bk']?.rawData || [];
+        const bkMetrics = [
+          { label: 'Meat received', value: `${parseNum(bkData[1]).toLocaleString()} kg` },
+          { label: 'Meat sold', value: `${parseNum(bkData[2]).toLocaleString()} kg` },
+          { label: 'Damaged', value: `${parseNum(bkData[4]).toLocaleString()} kg` }
         ];
 
-        const nyaMetrics = [
-          { label: 'Trays received', value: nyaToday.reduce((sum, kr) => sum + parseNum(kr[2]), 0).toLocaleString() },
-          { label: 'Trays sold', value: nyaEggs.toLocaleString() },
-          { label: 'Damaged trays', value: nyaToday.reduce((sum, kr) => sum + parseNum(kr[5]), 0).toLocaleString() },
-          { label: 'Trays left', value: parseNum(nyaToday[0]?.[8]).toLocaleString() }
+        const brData = dpts['br']?.rawData || [];
+        const brMetrics = [
+          { label: 'Meat received', value: `${parseNum(brData[1]).toLocaleString()} kg` },
+          { label: 'Meat sold', value: `${parseNum(brData[2]).toLocaleString()} kg` },
+          { label: 'Damaged', value: `${parseNum(brData[4]).toLocaleString()} kg` }
         ];
 
-        const buData = dpts['butcher']?.rawData || [];
-        const buMetrics = [
-          { label: 'Meat received', value: `${parseNum(buData[1]).toLocaleString()} kg` },
-          { label: 'Meat sold', value: `${parseNum(buData[2]).toLocaleString()} kg` },
-          { label: 'Damaged', value: `${parseNum(buData[4]).toLocaleString()} kg` }
+        const bnData = dpts['bn']?.rawData || [];
+        const bnMetrics = [
+          { label: 'Meat received', value: `${parseNum(bnData[1]).toLocaleString()} kg` },
+          { label: 'Meat sold', value: `${parseNum(bnData[2]).toLocaleString()} kg` },
+          { label: 'Damaged', value: `${parseNum(bnData[4]).toLocaleString()} kg` }
         ];
 
         // Merge display metrics into API dept data (API already has correct revenue/expenses/profit incl. finance extras)
-        dpts['eggFarm'] = { ...dpts['eggFarm'], metrics: efMetrics };
         dpts['broiler'] = { ...dpts['broiler'], metrics: bfMetrics };
-        // Use API values for kiosk financials (includes finance extras), only replace metrics
-        dpts['eggKioskBatsinda'] = { ...dpts['eggKioskBatsinda'], metrics: batMetrics };
-        dpts['eggKioskNyabugogo'] = { ...dpts['eggKioskNyabugogo'], metrics: nyaMetrics };
-        dpts['butcher'] = { ...dpts['butcher'], metrics: buMetrics };
+        dpts['bk'] = { ...dpts['bk'], metrics: bkMetrics };
+        dpts['br'] = { ...dpts['br'], metrics: brMetrics };
+        dpts['bn'] = { ...dpts['bn'], metrics: bnMetrics };
 
         // Build department summaries — use API's `active` flag (based on actual data rows)
         const deptNames = Object.keys(DEPT_CONFIG);
         const deptKeyMap: Record<string, string> = {
-          'Egg Farm': 'eggFarm',
           'Broiler Farm': 'broiler',
-          'Egg Kiosk Batsinda': 'eggKioskBatsinda',
-          'Egg Kiosk Nyabugogo': 'eggKioskNyabugogo',
-          'butcher': 'butcher',
+          'Butchery (Kibungo)': 'bk',
+          'Butchery (Rwamagana)': 'br',
+          'Butchery (Nyabugogo)': 'bn',
         };
 
         const summaries: DeptSummary[] = deptNames.map(name => {
