@@ -306,7 +306,7 @@ export default function HomePage() {
                               onClick={() => {
                                 handleOrderClick(product)
                               }}
-                              className="bg-[#006400] text-white rounded-xl px-6 py-3 text-sm font-semibold hover:bg-[#D97706] transition-all duration-300">
+                              className="bg-[#FFDE1A] text-black rounded-[10px] px-[24px] py-[10px] text-[14px] font-bold hover:bg-[#e6c710] transition-colors duration-300 shadow-sm">
                               Order Now
                             </button>
                           </div>
