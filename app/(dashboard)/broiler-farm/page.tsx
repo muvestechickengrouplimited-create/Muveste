@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { BroilerFarmForm } from '../../../components/forms/BroilerFarmForm';
 import { StatCard } from '../../../components/ui/StatCard';
@@ -14,6 +14,7 @@ import {
 } from '../../../components/ui/Table';
 import { formatRWF, formatDate } from '../../../lib/utils';
 import { auth } from '../../../lib/firebase';
+import { onAuthStateChanged } from 'firebase/auth';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 interface BroilerFarmRecord {
@@ -68,7 +69,6 @@ const ExpenseIcon = () => (
   </svg>
 );
 
-// ─── Page ────────────────────────────────────────────────────────────────────
 // ─── Skeleton ────────────────────────────────────────────────────────────────
 const Skeleton = ({ className }: { className?: string }) => (
   <div className={`animate-pulse bg-[#e8f5e8] rounded-xl ${className}`} />
@@ -82,6 +82,8 @@ export default function BroilerFarmDashboard() {
   const [loading, setLoading] = useState(true);
   const [error,   setError]   = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [authReady, setAuthReady] = useState(false);
+  const hasFetched = useRef(false);
 
   const todayStr   = new Date().toISOString().split('T')[0];
   const todayLabel = new Date().toLocaleDateString('en-US', {
@@ -91,9 +93,15 @@ export default function BroilerFarmDashboard() {
     day:     'numeric',
   });
 
+  // Wait for Firebase Auth to be ready before fetching data
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, (user) => {
+      setAuthReady(true);
+    });
+    return () => unsub();
+  }, []);
+
   const fetchData = useCallback(async () => {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 8000);
     try {
       setLoading(true);
       setError(false);
@@ -102,10 +110,14 @@ export default function BroilerFarmDashboard() {
       const token = await auth.currentUser?.getIdToken();
       if (!token) {
         setErrorMessage('Not authenticated. Please refresh the page.');
+        setLoading(false);
         return;
       }
 
-      // Fetch records and batches
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 15000);
+
+      // Fetch records and batches in parallel
       const [recRes, batchRes] = await Promise.all([
         fetch('/api/broiler-farm', {
           headers: { Authorization: `Bearer ${token}` },
@@ -125,36 +137,46 @@ export default function BroilerFarmDashboard() {
         setErrorMessage(data.error || 'Failed to load records');
       } else {
         const data = await recRes.json();
-        setRecords(data.data || []);
+        // API returns { success: true, data: [...] } or bare [] when empty
+        if (Array.isArray(data)) {
+          setRecords(data);
+        } else {
+          setRecords(data.data || []);
+        }
       }
 
       if (batchRes.ok) {
         const data = await batchRes.json();
-        setBatches(data || []);
+        setBatches(Array.isArray(data) ? data : []);
       }
-    } catch (err) {
-      clearTimeout(timeout);
-      console.error('Failed to fetch data:', err);
-      setError(true);
+    } catch (err: any) {
+      if (err?.name === 'AbortError') {
+        setErrorMessage('Request timed out. Please try again.');
+      } else {
+        console.error('Failed to fetch data:', err);
+        setError(true);
+      }
     } finally {
       setLoading(false);
     }
   }, []);
 
+  // Fetch data once auth is ready
   useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+    if (authReady && !hasFetched.current) {
+      hasFetched.current = true;
+      fetchData();
+    }
+  }, [authReady, fetchData]);
 
   const filteredRecords = selectedBatch === 'All'
     ? records
     : records.filter(r => r.batch === selectedBatch);
 
-  // ── Derive today's totals ────────────────────────────────────────────────
-  const todayRecords  = filteredRecords.filter((r) => r.date === todayStr);
-  
-  // Summary card metrics (today, filtered by batch)
+  // ── Live bird counts — always from the most recent report per batch ────────
   const totalLiveBirds = React.useMemo(() => {
     if (selectedBatch === 'All') {
+      // Sum up the most recent liveBirds for each batch
       return batches.reduce((sum, b) => {
         const bRows = records.filter(r => r.batch === b[0]);
         return sum + (bRows[0]?.liveBirds || 0);
@@ -165,21 +187,23 @@ export default function BroilerFarmDashboard() {
     }
   }, [records, batches, selectedBatch]);
 
-  const revenue        = todayRecords.reduce((s, r) => s + (r.revenue    || 0), 0);
-  const expenses       = todayRecords.reduce((s, r) => s + (r.expenses   || 0), 0);
-  const profit         = revenue - expenses;
+  // ── Today's financial totals ──────────────────────────────────────────────
+  const todayRecords = filteredRecords.filter((r) => r.date === todayStr);
+  const revenue      = todayRecords.reduce((s, r) => s + (r.revenue  || 0), 0);
+  const expenses     = todayRecords.reduce((s, r) => s + (r.expenses || 0), 0);
+  const profit       = revenue - expenses;
 
-  // Recent submissions
+  // Recent submissions (newest first, from API)
   const recent = filteredRecords.slice(0, 20);
 
   return (
-    <div className="space-y-8 pb-8 px-4 py-4 md:px-8 md:py-6">
+    <div className="space-y-6 pb-8 px-3 py-4 sm:px-4 md:px-8 md:py-6">
       {/* ── Header ─────────────────────────────────────────────────────── */}
       <div className="flex flex-col gap-1">
-        <h1 className="text-3xl font-bold tracking-tight text-[#1B6B3A]">
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#1B6B3A]">
           Broiler Farm — Management
         </h1>
-        <p className="text-[#111827] opacity-70 text-base">{todayLabel}</p>
+        <p className="text-[#111827] opacity-70 text-sm sm:text-base">{todayLabel}</p>
       </div>
 
       {/* ── Error Boundaries ───────────────────────────────────────────── */}
@@ -189,7 +213,7 @@ export default function BroilerFarmDashboard() {
             Failed to load data
           </p>
           <button
-            onClick={() => window.location.reload()}
+            onClick={() => { hasFetched.current = false; fetchData(); }}
             className="bg-[#006400] text-white rounded-lg px-4 py-2 text-xs font-semibold"
           >
             Retry
@@ -200,14 +224,20 @@ export default function BroilerFarmDashboard() {
       {errorMessage && (
         <div className="bg-red-50 border border-red-200 rounded-2xl p-4 text-center">
           <p className="text-sm text-red-600 font-medium">{errorMessage}</p>
+          <button
+            onClick={() => { hasFetched.current = false; setErrorMessage(null); fetchData(); }}
+            className="mt-2 bg-[#006400] text-white rounded-lg px-4 py-2 text-xs font-semibold"
+          >
+            Retry
+          </button>
         </div>
       )}
 
       {/* ── Batch Selector ─────────────────────────────────────────────── */}
-      <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-none">
+      <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-none -mx-1 px-1">
         <button
           onClick={() => setSelectedBatch('All')}
-          className={`px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all
+          className={`px-3 sm:px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all shrink-0
             ${selectedBatch === 'All'
               ? 'bg-[#1B6B3A] text-white shadow-md'
               : 'bg-white border border-gray-200 text-gray-400 hover:border-[#1B6B3A] hover:text-[#1B6B3A]'}`}
@@ -218,7 +248,7 @@ export default function BroilerFarmDashboard() {
           <button
             key={batch[0]}
             onClick={() => setSelectedBatch(batch[0])}
-            className={`px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all
+            className={`px-3 sm:px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all shrink-0
               ${selectedBatch === batch[0]
                 ? 'bg-[#1B6B3A] text-white shadow-md'
                 : 'bg-white border border-gray-200 text-gray-400 hover:border-[#1B6B3A] hover:text-[#1B6B3A]'}`}
@@ -238,7 +268,7 @@ export default function BroilerFarmDashboard() {
       ) : (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
           <StatCard
-            title="Number of Birds"
+            title="Live Birds"
             value={totalLiveBirds.toLocaleString()}
             color="green"
             icon={<BirdIcon />}
@@ -266,17 +296,19 @@ export default function BroilerFarmDashboard() {
 
       {/* ── Batch Breakdown Cards (Only when All is selected) ─────────── */}
       {selectedBatch === 'All' && batches.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
           {batches.map(batch => {
             const batchRows = records.filter(r => r.batch === batch[0]);
             const batchToday = batchRows.find(r => r.date === todayStr);
-            const batchRevenue = batchRows.reduce((sum, r) => sum + (r.revenue || 0), 0);
             const batchLiveBirds = batchRows[0]?.liveBirds || 0;
+            const batchMortality = batchToday?.mortality || 0;
+            const batchSold = batchToday?.birdsSold || 0;
+            const batchRevenue = batchToday?.revenue || 0;
 
             return (
               <div key={batch[0]} className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
                 <div className="flex justify-between items-center mb-3">
-                  <p className="font-bold text-[#2D2D2D]">{batch[0]}</p>
+                  <p className="font-bold text-[#2D2D2D] text-sm sm:text-base">{batch[0]}</p>
                   <span className={`text-[10px] font-bold px-3 py-1 rounded-full 
                     ${batch[2] === 'Active' ? 'bg-[#EAF5EE] text-[#1B6B3A]' : 'bg-gray-100 text-gray-400'}`}>
                     {batch[2]}
@@ -289,7 +321,15 @@ export default function BroilerFarmDashboard() {
                   </div>
                   <div>
                     <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Mortality</p>
-                    <p className="text-lg font-bold text-red-500 font-mono">{batchToday?.mortality || 0}</p>
+                    <p className="text-lg font-bold text-red-500 font-mono">{batchMortality}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Sold Today</p>
+                    <p className="text-lg font-bold text-[#E07B00] font-mono">{batchSold}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Revenue</p>
+                    <p className="text-sm font-bold text-[#2D2D2D] font-mono">{formatRWF(batchRevenue)}</p>
                   </div>
                 </div>
               </div>
@@ -299,22 +339,22 @@ export default function BroilerFarmDashboard() {
       )}
 
       {/* ── Main Layout ───────────────────────────────────────────────── */}
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 lg:gap-8 items-start">
         {/* Form — 60% */}
-        <div className="lg:col-span-3">
+        <div className="lg:col-span-3 order-1">
           <BroilerFarmForm onSubmitSuccess={fetchData} />
         </div>
 
         {/* Recent Submissions — 40% */}
-        <div className="lg:col-span-2 flex flex-col gap-3">
+        <div className="lg:col-span-2 flex flex-col gap-3 order-2">
           <div className="flex items-center justify-between px-1">
-            <h2 className="text-xl md:text-2xl font-bold text-[#111827]">
+            <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-[#111827]">
               Recent Submissions
               {selectedBatch !== 'All' && <span className="text-[#1B6B3A] ml-2">({selectedBatch})</span>}
             </h2>
             <button
               onClick={fetchData}
-              className="text-xs text-[#1B6B3A] hover:underline font-bold"
+              className="text-xs text-[#1B6B3A] hover:underline font-bold shrink-0"
             >
               Refresh
             </button>
@@ -326,52 +366,50 @@ export default function BroilerFarmDashboard() {
             </div>
           ) : recent.length === 0 ? (
             <div className="bg-white rounded-2xl border border-gray-100 py-12 flex flex-col items-center gap-2 shadow-sm">
-              <span className="text-4xl text-gray-200 font-bold">BATCH EMPTY</span>
-              <p className="text-sm text-gray-400">No data found for this batch.</p>
+              <span className="text-3xl sm:text-4xl text-gray-200 font-bold">NO DATA</span>
+              <p className="text-sm text-gray-400">No reports found yet.</p>
             </div>
           ) : (
             <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm">
-              <div className="overflow-x-auto -mx-4 md:mx-0">
-                <div className="min-w-[600px] px-4 md:px-0 md:min-w-0">
-                  <Table className="w-full">
-                    <TableHeader className="bg-gray-50/50">
-                      <TableRow>
-                        <TableHead className="font-bold text-[10px] uppercase">Date</TableHead>
-                        {selectedBatch === 'All' && <TableHead className="font-bold text-[10px] uppercase">Batch</TableHead>}
-                        <TableHead className="font-bold text-[10px] uppercase text-right">Opening</TableHead>
-                        <TableHead className="font-bold text-[10px] uppercase text-right">Mortality</TableHead>
-                        <TableHead className="font-bold text-[10px] uppercase text-right">Sold</TableHead>
-                        <TableHead className="font-bold text-[10px] uppercase text-right">Closing</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {recent.map((record, idx) => (
-                        <TableRow key={`${record.date}-${idx}`} className="hover:bg-gray-50/50 transition-colors">
-                          <TableCell className="whitespace-nowrap font-bold text-xs">
-                            {formatDate(record.date)}
-                          </TableCell>
-                          {selectedBatch === 'All' && (
-                            <TableCell className="font-bold text-xs text-[#1B6B3A]">
-                              {record.batch}
-                            </TableCell>
-                          )}
-                          <TableCell className="font-mono text-right text-xs">
-                            {record.numberOfBirds}
-                          </TableCell>
-                          <TableCell className="font-mono text-right text-red-500 font-bold text-xs">
-                            {record.mortality}
-                          </TableCell>
-                          <TableCell className="font-mono text-right text-[#E07B00] font-bold text-xs">
-                            {record.birdsSold}
-                          </TableCell>
-                          <TableCell className="font-mono text-right text-[#1B6B3A] font-bold text-xs">
-                            {record.liveBirds}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left">
+                  <thead className="bg-gray-50/80 border-b border-gray-100">
+                    <tr>
+                      <th className="px-3 py-2.5 font-bold text-[10px] uppercase text-gray-500 tracking-wider">Date</th>
+                      {selectedBatch === 'All' && <th className="px-3 py-2.5 font-bold text-[10px] uppercase text-gray-500 tracking-wider">Batch</th>}
+                      <th className="px-3 py-2.5 font-bold text-[10px] uppercase text-gray-500 tracking-wider text-right">Opening</th>
+                      <th className="px-3 py-2.5 font-bold text-[10px] uppercase text-gray-500 tracking-wider text-right">Mort.</th>
+                      <th className="px-3 py-2.5 font-bold text-[10px] uppercase text-gray-500 tracking-wider text-right">Sold</th>
+                      <th className="px-3 py-2.5 font-bold text-[10px] uppercase text-gray-500 tracking-wider text-right">Closing</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-50">
+                    {recent.map((record, idx) => (
+                      <tr key={`${record.date}-${record.batch}-${idx}`} className="hover:bg-gray-50/50 transition-colors">
+                        <td className="px-3 py-2 whitespace-nowrap font-bold text-xs text-[#2D2D2D]">
+                          {formatDate(record.date)}
+                        </td>
+                        {selectedBatch === 'All' && (
+                          <td className="px-3 py-2 font-bold text-xs text-[#1B6B3A]">
+                            {record.batch}
+                          </td>
+                        )}
+                        <td className="px-3 py-2 font-mono text-right text-xs text-[#2D2D2D]">
+                          {record.numberOfBirds}
+                        </td>
+                        <td className="px-3 py-2 font-mono text-right text-red-500 font-bold text-xs">
+                          {record.mortality}
+                        </td>
+                        <td className="px-3 py-2 font-mono text-right text-[#E07B00] font-bold text-xs">
+                          {record.birdsSold}
+                        </td>
+                        <td className="px-3 py-2 font-mono text-right text-[#1B6B3A] font-bold text-xs">
+                          {record.liveBirds}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             </div>
           )}
