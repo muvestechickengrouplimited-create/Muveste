@@ -30,10 +30,10 @@ export function StatCard({ title, value, icon, color, trend, className }: StatCa
     <Card className={cn('overflow-hidden min-h-[100px]', className)}>
       <CardContent className="p-4 md:p-6">
         <div className="flex items-start justify-between space-x-4">
-          <div className="flex flex-col space-y-2">
-            <p className="text-sm font-medium text-gray-500">{title}</p>
-            <div className="flex items-baseline space-x-2">
-              <h2 className="text-2xl md:text-3xl font-bold tracking-tight text-[#111827] font-mono-numbers">
+          <div className="flex flex-col space-y-2 min-w-0">
+            <p className="text-sm font-medium text-gray-500 truncate">{title}</p>
+            <div className="flex items-baseline space-x-2 min-w-0">
+              <h2 className="text-xl md:text-2xl font-bold tracking-tight text-[#111827] font-mono-numbers truncate">
                 {value}
               </h2>
             </div>
