@@ -178,6 +178,7 @@ const BizExpenseRow = ({
         min={0}
         value={row.amount || ''}
         onChange={(e) => onUpdate(index, 'amount', parseFloat(e.target.value) || 0)}
+        onWheel={(e) => e.currentTarget.blur()}
         className="border-2 border-gray-100 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-[#F5C518]"
       />
       <button 

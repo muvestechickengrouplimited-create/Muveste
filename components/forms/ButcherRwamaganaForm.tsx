@@ -219,6 +219,7 @@ function ButcherRwamaganaForm() {
                 onChange={(e) => updateField('date', e.target.value)}
                 required
                 className={inputClass}
+                onWheel={(e) => e.currentTarget.blur()}
               />
               {errors.date && <p className="text-sm text-red-500">{errors.date}</p>}
             </div>
@@ -238,6 +239,7 @@ function ButcherRwamaganaForm() {
                 onChange={(e) => updateField('meatReceived', e.target.value)}
                 required
                 className={inputClass}
+                onWheel={(e) => e.currentTarget.blur()}
               />
               {errors.meatReceived && (
                 <p className="text-sm text-red-500">{errors.meatReceived}</p>
@@ -259,6 +261,7 @@ function ButcherRwamaganaForm() {
                 onChange={(e) => updateField('buyingPricePerKg', e.target.value)}
                 required
                 className={inputClass}
+                onWheel={(e) => e.currentTarget.blur()}
               />
               {errors.buyingPricePerKg && (
                 <p className="text-sm text-red-500">{errors.buyingPricePerKg}</p>
@@ -280,6 +283,7 @@ function ButcherRwamaganaForm() {
                 onChange={(e) => updateField('meatSold', e.target.value)}
                 required
                 className={inputClass}
+                onWheel={(e) => e.currentTarget.blur()}
               />
               {errors.meatSold && (
                 <p className="text-sm text-red-500">{errors.meatSold}</p>
@@ -301,6 +305,7 @@ function ButcherRwamaganaForm() {
                 onChange={(e) => updateField('sellingPricePerKg', e.target.value)}
                 required
                 className={inputClass}
+                onWheel={(e) => e.currentTarget.blur()}
               />
               {errors.sellingPricePerKg && (
                 <p className="text-sm text-red-500">{errors.sellingPricePerKg}</p>
@@ -322,6 +327,7 @@ function ButcherRwamaganaForm() {
                 onChange={(e) => updateField('damaged', e.target.value)}
                 required
                 className={inputClass}
+                onWheel={(e) => e.currentTarget.blur()}
               />
               {errors.damaged && (
                 <p className="text-sm text-red-500">{errors.damaged}</p>
@@ -343,6 +349,7 @@ function ButcherRwamaganaForm() {
                 onChange={(e) => updateField('expenses', e.target.value)}
                 required
                 className={inputClass}
+                onWheel={(e) => e.currentTarget.blur()}
               />
               {errors.expenses && (
                 <p className="text-sm text-red-500">{errors.expenses}</p>
@@ -354,11 +361,11 @@ function ButcherRwamaganaForm() {
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
 
             {/* Total Cost */}
-            <div className="bg-red-50 border border-red-100 rounded-xl p-4">
+            <div className="bg-red-50 border border-red-100 rounded-xl p-4 overflow-hidden">
               <p className="text-xs text-red-400 font-bold uppercase tracking-wide">
                 TOTAL COST
               </p>
-              <p className="text-2xl font-bold font-mono text-red-500">
+              <p className="text-xl sm:text-2xl font-bold font-mono text-red-500 truncate">
                 RWF {totalCost.toLocaleString()}
               </p>
               <p className="text-xs text-gray-400 mt-1">
@@ -367,11 +374,11 @@ function ButcherRwamaganaForm() {
             </div>
 
             {/* Total Sales */}
-            <div className="bg-[#FEF3C7] border-2 border-[#D97706] rounded-xl p-4">
+            <div className="bg-[#FEF3C7] border-2 border-[#D97706] rounded-xl p-4 overflow-hidden">
               <p className="text-xs font-bold text-[#D97706] uppercase tracking-wide">
                 TOTAL SALES
               </p>
-              <p className="text-2xl font-bold font-mono text-[#1a1814]">
+              <p className="text-xl sm:text-2xl font-bold font-mono text-[#1a1814] truncate">
                 RWF {totalSales.toLocaleString()}
               </p>
               <p className="text-xs text-gray-400 mt-1">
@@ -380,11 +387,11 @@ function ButcherRwamaganaForm() {
             </div>
 
             {/* Profit */}
-            <div className={`rounded-xl p-4 border-2 ${profit >= 0 ? 'bg-[#e8f5e8] border-[#006400]/30' : 'bg-red-50 border-red-200'}`}>
+            <div className={`rounded-xl p-4 border-2 overflow-hidden ${profit >= 0 ? 'bg-[#e8f5e8] border-[#006400]/30' : 'bg-red-50 border-red-200'}`}>
               <p className={`text-xs font-bold uppercase tracking-wide ${profit >= 0 ? 'text-[#006400]' : 'text-red-500'}`}>
                 {profit >= 0 ? 'PROFIT' : 'LOSS'}
               </p>
-              <p className={`text-2xl font-bold font-mono ${profit >= 0 ? 'text-[#006400]' : 'text-red-500'}`}>
+              <p className={`text-xl sm:text-2xl font-bold font-mono truncate ${profit >= 0 ? 'text-[#006400]' : 'text-red-500'}`}>
                 RWF {Math.abs(profit).toLocaleString()}
               </p>
               <p className="text-xs text-gray-400 mt-1">
@@ -411,7 +418,7 @@ function ButcherRwamaganaForm() {
                           : 'text-[#006400]'}`}>
                       STOCK LEFT
                     </p>
-                    <p className={`text-3xl font-bold font-mono mt-1
+                    <p className={`text-2xl sm:text-3xl font-bold font-mono mt-1 truncate
                       ${stockLeft < 0
                         ? 'text-red-500'
                         : stockLeft < 10

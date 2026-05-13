@@ -167,19 +167,13 @@ export default function ButcherRwamaganaDashboard() {
 
           {/* ── Summary Cards ──────────────────────────────────────────────── */}
           {loading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 md:gap-4">
-              {[1,2,3,4,5].map(i => (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4">
+              {[1,2,3].map(i => (
                 <Skeleton key={i} className="h-28"/>
               ))}
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
-              <StatCard
-                title="Stock left"
-                value={`${stockLeft} kg`}
-                className={`border-l-4 ${stockLeft < 0 ? 'border-red-500' : stockLeft < 10 ? 'border-orange-500' : 'border-green-500'}`}
-                icon={<MeatIcon />}
-              />
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <StatCard
                 title="Meat sold today"
                 value={`${todayMeatSold.toFixed(2)} kg`}
@@ -197,12 +191,6 @@ export default function ButcherRwamaganaDashboard() {
                 value={formatRWF(todayProfit)}
                 icon={<ProfitIcon />}
                 className={`border-l-4 ${todayProfit >= 0 ? 'border-[#1B6B3A]' : 'border-[#D9534F]'}`}
-              />
-              <StatCard
-                title="Damaged today"
-                value={`${todayDamaged.toFixed(2)} kg`}
-                icon={<DamagedIcon />}
-                className="border-l-4 border-[#E07B00]"
               />
             </div>
           )}

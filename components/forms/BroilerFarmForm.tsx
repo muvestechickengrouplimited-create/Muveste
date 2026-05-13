@@ -303,6 +303,7 @@ export function BroilerFarmForm({ onSubmitSuccess }: { onSubmitSuccess?: () => v
                 onChange={(e) => updateField('date', e.target.value)}
                 required
                 className={inputCls}
+                onWheel={(e) => e.currentTarget.blur()}
               />
               {errors.date && <p className="text-xs text-red-500 font-medium">{errors.date}</p>}
             </div>
@@ -318,6 +319,7 @@ export function BroilerFarmForm({ onSubmitSuccess }: { onSubmitSuccess?: () => v
                 onChange={(e) => updateField('batch', e.target.value)}
                 required
                 className={inputCls}
+                onWheel={(e) => e.currentTarget.blur()}
               >
                 <option value="">Select batch...</option>
                 {batches.map(batch => (
@@ -344,6 +346,7 @@ export function BroilerFarmForm({ onSubmitSuccess }: { onSubmitSuccess?: () => v
                 onChange={(e) => updateField('feedQty', e.target.value)}
                 required
                 className={inputCls}
+                onWheel={(e) => e.currentTarget.blur()}
               />
               {errors.feedQty && <p className="text-xs text-red-500 font-medium">{errors.feedQty}</p>}
             </div>
@@ -363,6 +366,7 @@ export function BroilerFarmForm({ onSubmitSuccess }: { onSubmitSuccess?: () => v
                 onChange={(e) => updateField('price', e.target.value)}
                 required
                 className={inputCls}
+                onWheel={(e) => e.currentTarget.blur()}
               />
               {errors.price && <p className="text-xs text-red-500 font-medium">{errors.price}</p>}
             </div>
@@ -382,6 +386,7 @@ export function BroilerFarmForm({ onSubmitSuccess }: { onSubmitSuccess?: () => v
                 onChange={(e) => updateField('water', e.target.value)}
                 required
                 className={inputCls}
+                onWheel={(e) => e.currentTarget.blur()}
               />
               {errors.water && <p className="text-xs text-red-500 font-medium">{errors.water}</p>}
             </div>
@@ -399,6 +404,7 @@ export function BroilerFarmForm({ onSubmitSuccess }: { onSubmitSuccess?: () => v
                 value={fields.medications}
                 onChange={(e) => updateField('medications', e.target.value)}
                 className={inputCls}
+                onWheel={(e) => e.currentTarget.blur()}
               />
               {errors.medications && (
                 <p className="text-xs text-red-500 font-medium">{errors.medications}</p>
@@ -423,6 +429,7 @@ export function BroilerFarmForm({ onSubmitSuccess }: { onSubmitSuccess?: () => v
                 }}
                 required
                 className={inputCls}
+                onWheel={(e) => e.currentTarget.blur()}
               />
               {isPrefilled && (
                 <p className="text-[10px] text-[#1B6B3A] font-bold mt-1 uppercase tracking-tight">
@@ -449,6 +456,7 @@ export function BroilerFarmForm({ onSubmitSuccess }: { onSubmitSuccess?: () => v
                 onChange={(e) => updateField('mortality', e.target.value)}
                 required
                 className={inputCls}
+                onWheel={(e) => e.currentTarget.blur()}
               />
               {errors.mortality && <p className="text-xs text-red-500 font-medium">{errors.mortality}</p>}
             </div>
@@ -467,6 +475,7 @@ export function BroilerFarmForm({ onSubmitSuccess }: { onSubmitSuccess?: () => v
                 value={fields.birdsSold}
                 onChange={(e) => updateField('birdsSold', e.target.value)}
                 className={inputCls}
+                onWheel={(e) => e.currentTarget.blur()}
               />
               {errors.birdsSold && <p className="text-xs text-red-500 font-medium">{errors.birdsSold}</p>}
             </div>
@@ -503,6 +512,7 @@ export function BroilerFarmForm({ onSubmitSuccess }: { onSubmitSuccess?: () => v
                 onChange={(e) => updateField('avgWeight', e.target.value)}
                 required
                 className={inputCls}
+                onWheel={(e) => e.currentTarget.blur()}
               />
               {errors.avgWeight && <p className="text-xs text-red-500 font-medium">{errors.avgWeight}</p>}
             </div>
@@ -522,6 +532,7 @@ export function BroilerFarmForm({ onSubmitSuccess }: { onSubmitSuccess?: () => v
                 onChange={(e) => updateField('pricePerKg', e.target.value)}
                 required
                 className={inputCls}
+                onWheel={(e) => e.currentTarget.blur()}
               />
               {errors.pricePerKg && <p className="text-xs text-red-500 font-medium">{errors.pricePerKg}</p>}
             </div>

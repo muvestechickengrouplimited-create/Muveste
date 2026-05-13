@@ -29,6 +29,12 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
             className
           )}
           ref={ref}
+          onWheel={(e) => {
+            if (props.type === 'number') {
+              e.currentTarget.blur();
+            }
+            props.onWheel?.(e);
+          }}
           {...props}
         />
         {error && (
