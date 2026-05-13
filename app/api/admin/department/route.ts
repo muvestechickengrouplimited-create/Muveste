@@ -127,12 +127,13 @@ export async function GET(request: Request) {
             { label: 'Selling price', value: `RWF ${parseNum(todayRow[5]).toLocaleString()}` },
             { label: 'Damaged', value: `${parseNum(todayRow[6]).toLocaleString()} kg` },
             { label: 'Total cost', value: `RWF ${parseNum(todayRow[3]).toLocaleString()}` },
+            { label: 'Stock Left', value: `${parseNum(todayRow[10]).toLocaleString()} kg` },
           ],
           medications: null,
           revenue: parseNum(todayRow[8]),
           expenses: parseNum(todayRow[7]),
           profit: parseNum(todayRow[9]),
-          notes: todayRow[10] || null,
+          notes: todayRow[11] || null,
         });
       }
     }

@@ -68,6 +68,7 @@ export async function POST(request: Request) {
       sellingPricePerKg,
       damaged,
       expenses,
+      previousStock = 0,
       notes,
     } = body;
 
@@ -97,6 +98,7 @@ export async function POST(request: Request) {
     const totalCost = mRec * mBuyPrc;
     const totalSales = mSold * mSelPrc;
     const profit = totalSales - totalCost - mExp;
+    const stockLeft = Number(previousStock) + mRec - mSold - mDmg;
     const now = new Date();
 
     const rowData = [
@@ -110,6 +112,7 @@ export async function POST(request: Request) {
       mExp,
       totalSales,
       profit,
+      stockLeft,
       notes || '',
       userEmail,
       now.toISOString(),
@@ -143,9 +146,21 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const period = searchParams.get('period'); // 'monthly' | null
+    const lastStock = searchParams.get('lastStock');
 
     // Fetch all rows from the butcher sheet (row 0 is headers), bypass cache
     const rows = await getRows('butcher-rwamagana', true);
+    
+    if (lastStock === '1') {
+      if (!rows || rows.length <= 1) {
+        return NextResponse.json({ previousStock: 0 });
+      }
+      const dataRows = rows.slice(1);
+      const lastRow = dataRows[0];
+      const previousStock = parseFloat(lastRow?.[10]) || 0;
+      return NextResponse.json({ previousStock });
+    }
+
     if (!rows || rows.length <= 1) {
       if (period === 'monthly') {
         return NextResponse.json({
@@ -220,9 +235,10 @@ export async function GET(request: Request) {
         expenses: parseNum(row[7]),
         totalSales: parseNum(row[8]),
         profit: parseNum(row[9]),
-        notes: row[10] ?? '',
-        submittedBy: row[11] ?? '',
-        timestamp: row[12] ?? '',
+        stockLeft: parseNum(row[10]),
+        notes: row[11] ?? '',
+        submittedBy: row[12] ?? '',
+        timestamp: row[13] ?? '',
       }))
       .sort(
         (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()

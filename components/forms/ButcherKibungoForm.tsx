@@ -75,8 +75,17 @@ function ButcherKibungoForm() {
   const [errors, setErrors] = useState<ValidationErrors>({});
   const [submitted, setSubmitted] = useState(false);
 
+  const [previousStock, setPreviousStock] = useState(0);
+  const [loadingStock, setLoadingStock] = useState(true);
+
   useEffect(() => {
-    // We no longer load fields from localStorage here to ensure empty inputs on laptop
+    fetch('/api/butcher-kibungo?lastStock=1')
+      .then(r => r.json())
+      .then(data => {
+        setPreviousStock(data.previousStock || 0);
+      })
+      .catch(() => setPreviousStock(0))
+      .finally(() => setLoadingStock(false));
   }, []);
 
   // ── Auto-calculated values ────────────────────────────────────────────────
@@ -84,7 +93,10 @@ function ButcherKibungoForm() {
   const buyingPricePerKgNum = Number(fields.buyingPricePerKg) || 0;
   const meatSoldNum = Number(fields.meatSold) || 0;
   const sellingPricePerKgNum = Number(fields.sellingPricePerKg) || 0;
+  const damagedNum = Number(fields.damaged) || 0;
   const expensesNum = Number(fields.expenses) || 0;
+
+  const stockLeft = previousStock + meatReceivedNum - meatSoldNum - damagedNum;
 
   const [totalCost, setTotalCost] = useState(0);
   const [totalSales, setTotalSales] = useState(0);
@@ -150,6 +162,8 @@ function ButcherKibungoForm() {
         sellingPricePerKg: Number(fields.sellingPricePerKg),
         damaged: Number(fields.damaged),
         expenses: Number(fields.expenses),
+        previousStock,
+        stockLeft,
         notes: fields.notes,
       };
 
@@ -377,6 +391,69 @@ function ButcherKibungoForm() {
                 Sales - Cost - Expenses
               </p>
             </div>
+            
+            {/* Stock Left */}
+            <div className="md:col-span-3">
+              <div className={`rounded-xl p-4 border-2
+                ${stockLeft < 0
+                  ? 'bg-red-50 border-red-200'
+                  : stockLeft < 10
+                    ? 'bg-[#FEF3C7] border-[#D97706]/30'
+                    : 'bg-[#e8f5e8] border-[#006400]/20'}`}>
+                
+                <div className="flex justify-between items-start">
+                  <div>
+                    <p className={`text-xs font-bold uppercase tracking-wide
+                      ${stockLeft < 0
+                        ? 'text-red-500'
+                        : stockLeft < 10
+                          ? 'text-[#D97706]'
+                          : 'text-[#006400]'}`}>
+                      STOCK LEFT
+                    </p>
+                    <p className={`text-3xl font-bold font-mono mt-1
+                      ${stockLeft < 0
+                        ? 'text-red-500'
+                        : stockLeft < 10
+                          ? 'text-[#D97706]'
+                          : 'text-[#006400]'}`}>
+                      {stockLeft} kg
+                    </p>
+                    <p className="text-xs text-gray-400 mt-1">
+                      {stockLeft < 0
+                        ? '⚠️ Check your numbers!'
+                        : stockLeft < 10
+                          ? '⚠️ Stock running low!'
+                          : '✅ Stock available'}
+                    </p>
+                  </div>
+
+                  <div className="text-right text-xs text-gray-400 space-y-1">
+                    <p>Yesterday: 
+                      <span className="font-semibold text-gray-600 ml-1">
+                        {loadingStock ? '...' : `${previousStock} kg`}
+                      </span>
+                    </p>
+                    <p>+ Received: 
+                      <span className="font-semibold text-gray-600 ml-1">
+                        {meatReceivedNum} kg
+                      </span>
+                    </p>
+                    <p>- Sold: 
+                      <span className="font-semibold text-gray-600 ml-1">
+                        {meatSoldNum} kg
+                      </span>
+                    </p>
+                    <p>- Damaged: 
+                      <span className="font-semibold text-gray-600 ml-1">
+                        {damagedNum} kg
+                      </span>
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
           </div>
 
           {/* ── Notes ─────────────────────────────────────────────────── */}

@@ -27,6 +27,7 @@ interface butcherRecord {
   expenses: number;
   totalSales: number;
   profit: number;
+  stockLeft: number;
   notes: string;
   submittedBy: string;
   timestamp: string;
@@ -135,6 +136,8 @@ export default function ButcherRwamaganaDashboard() {
     .filter((r) => new Date(r.date) >= cutoff7)
     .slice(0, 20);
 
+  const stockLeft = records.length > 0 ? records[0].stockLeft : 0;
+
   return (
     <>
       <div className="hidden md:block">
@@ -164,13 +167,19 @@ export default function ButcherRwamaganaDashboard() {
 
           {/* ── Summary Cards ──────────────────────────────────────────────── */}
           {loading ? (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
-              {[1,2,3,4].map(i => (
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-3 md:gap-4">
+              {[1,2,3,4,5].map(i => (
                 <Skeleton key={i} className="h-28"/>
               ))}
             </div>
           ) : (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+              <StatCard
+                title="Stock left"
+                value={`${stockLeft} kg`}
+                className={`border-l-4 ${stockLeft < 0 ? 'border-red-500' : stockLeft < 10 ? 'border-orange-500' : 'border-green-500'}`}
+                icon={<MeatIcon />}
+              />
               <StatCard
                 title="Meat sold today"
                 value={`${todayMeatSold.toFixed(2)} kg`}
@@ -241,11 +250,10 @@ export default function ButcherRwamaganaDashboard() {
                         <TableRow>
                           <TableHead>Date</TableHead>
                           <TableHead>Received</TableHead>
-                          <TableHead>Buying/kg</TableHead>
                           <TableHead>Sold</TableHead>
-                          <TableHead>Selling/kg</TableHead>
+                          <TableHead>Damaged</TableHead>
+                          <TableHead>Stock Left</TableHead>
                           <TableHead>Total Sales</TableHead>
-                          <TableHead>Total Cost</TableHead>
                           <TableHead>Profit</TableHead>
                         </TableRow>
                       </TableHeader>
@@ -258,20 +266,17 @@ export default function ButcherRwamaganaDashboard() {
                             <TableCell className="font-mono">
                               {record.meatReceived.toFixed(2)} kg
                             </TableCell>
-                            <TableCell className="font-mono text-gray-600">
-                              {record.buyingPricePerKg.toLocaleString()}
-                            </TableCell>
                             <TableCell className="font-mono text-blue-600">
                               {record.meatSold.toFixed(2)} kg
                             </TableCell>
-                            <TableCell className="font-mono text-gray-600">
-                              {record.sellingPricePerKg.toLocaleString()}
+                            <TableCell className="font-mono text-red-500">
+                              {record.damaged.toFixed(2)} kg
+                            </TableCell>
+                            <TableCell className="font-mono text-[#1B6B3A] font-semibold">
+                              {record.stockLeft} kg
                             </TableCell>
                             <TableCell className="font-mono text-[#E07B00] font-semibold">
                               {formatRWF(record.totalSales)}
-                            </TableCell>
-                            <TableCell className="font-mono text-red-500">
-                              {formatRWF(record.totalCost)}
                             </TableCell>
                             <TableCell
                               className={`font-mono font-semibold ${record.profit >= 0 ? 'text-[#1B6B3A]' : 'text-[#D9534F]'
