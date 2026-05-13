@@ -60,6 +60,13 @@ const DamagedIcon = () => (
   </svg>
 );
 
+const CostIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" className="w-6 h-6" stroke="currentColor" strokeWidth={1.8}>
+    <path strokeLinecap="round" strokeLinejoin="round"
+      d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+  </svg>
+);
+
 // ─── Page ────────────────────────────────────────────────────────────────────
 // ─── Skeleton ────────────────────────────────────────────────────────────────
 const Skeleton = ({ className }: { className?: string }) => (
@@ -126,6 +133,7 @@ export default function ButcherRwamaganaDashboard() {
   const todayRecords = records.filter((r) => r.date === todayStr);
   const todayMeatSold = todayRecords.reduce((s, r) => s + r.meatSold, 0);
   const todaySales = todayRecords.reduce((s, r) => s + r.totalSales, 0);
+  const todayTotalCost = todayRecords.reduce((s, r) => s + r.totalCost, 0);
   const todayProfit = todayRecords.reduce((s, r) => s + r.profit, 0);
   const todayDamaged = todayRecords.reduce((s, r) => s + r.damaged, 0);
 
@@ -167,13 +175,13 @@ export default function ButcherRwamaganaDashboard() {
 
           {/* ── Summary Cards ──────────────────────────────────────────────── */}
           {loading ? (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4">
-              {[1,2,3].map(i => (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+              {[1,2,3,4].map(i => (
                 <Skeleton key={i} className="h-28"/>
               ))}
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <StatCard
                 title="Meat sold today"
                 value={`${todayMeatSold.toFixed(2)} kg`}
@@ -185,6 +193,12 @@ export default function ButcherRwamaganaDashboard() {
                 value={formatRWF(todaySales)}
                 icon={<SalesIcon />}
                 className="border-l-4 border-[#F5C518]"
+              />
+              <StatCard
+                title="Total cost"
+                value={formatRWF(todayTotalCost)}
+                icon={<CostIcon />}
+                className="border-l-4 border-[#E07B00]"
               />
               <StatCard
                 title="Profit today"
