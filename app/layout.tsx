@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 import { Inter, Plus_Jakarta_Sans, JetBrains_Mono } from 'next/font/google';
 import './globals.css';
 import { ToastProvider } from '../components/ui/Toast';
+import { GoogleAnalytics } from '@next/third-parties/google';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter', display: 'swap' });
 const font = Plus_Jakarta_Sans({ subsets: ['latin'], weight: ['400','500','700'], variable: '--font-jakarta' })
@@ -69,6 +70,23 @@ export default function RootLayout({
         <ToastProvider>
           {children}
         </ToastProvider>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "WebSite",
+              "name": "Muveste",
+              "url": "https://muveste.com",
+              "description": "Order fresh premium chicken meat in Rwanda. Daily fresh stock delivered from our farm.",
+              "publisher": {
+                "@type": "Organization",
+                "name": "Muveste"
+              }
+            })
+          }}
+        />
+        <GoogleAnalytics gaId="G-6DDJTDNF10" />
       </body>
     </html>
   );
