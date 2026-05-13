@@ -13,8 +13,8 @@ export function cn(...inputs: ClassValue[]) {
  * Example: formatRWF(150000) -> "RWF 150,000"
  */
 export function formatRWF(amount: number): string {
-  if (isNaN(amount)) return 'RWF 0';
-  return `RWF ${new Intl.NumberFormat('en-US').format(amount)}`;
+  if (isNaN(amount)) return '0';
+  return `${new Intl.NumberFormat('en-US').format(amount)}`;
 }
 
 /**

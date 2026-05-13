@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { auth } from '../../lib/firebase';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../ui/Card';
@@ -75,6 +75,7 @@ export function BroilerFarmForm({ onSubmitSuccess }: { onSubmitSuccess?: () => v
   const [kgsSold,       setKgsSold]       = useState(0);
   const [revenue,       setRevenue]       = useState(0);
   const [isPrefilled,   setIsPrefilled]   = useState(false);
+  const lastLoadedRef = useRef<string>('');  // tracks batch+date to prevent infinite loop
 
   // Full field state
   const [fields, setFields] = useState({
@@ -141,29 +142,86 @@ export function BroilerFarmForm({ onSubmitSuccess }: { onSubmitSuccess?: () => v
   const soldBirdsNum = Number(birdsSold) || 0;
   const liveBirds = (Number(numberOfBirds) || 0) - mortalityNum - soldBirdsNum;
 
-  // Check for the last report to prefill live birds
-  useEffect(() => {
-    if (!fields.batch) {
-      return;
-    }
+  // Load report data for current batch & date, or prefill from the last submitted report
+  const loadCurrentReport = useCallback((batchName: string, reportDate: string, force = false) => {
+    if (!batchName || !reportDate) return;
 
-    // Only pull livebirds from the LAST report
-    fetch(`/api/broiler-farm?batch=${fields.batch}&last=1`)
+    // Prevent infinite loop: skip if we already loaded this exact combo
+    const key = `${batchName}::${reportDate}`;
+    if (!force && lastLoadedRef.current === key) return;
+    lastLoadedRef.current = key;
+
+    fetch(`/api/broiler-farm?batch=${encodeURIComponent(batchName)}&date=${reportDate}`)
       .then(r => r.json())
-      .then(data => {
-        if (data && data.liveBirds !== undefined) {
-          const val = String(data.liveBirds);
-          setFields(prev => ({ ...prev, numberOfBirds: val, mortality: '0', birdsSold: '0', feedQty: '', water: '', medications: '', avgWeight: '', pricePerKg: '', price: '', notes: '' }));
-          setNumberOfBirds(val);
-          setIsPrefilled(true);
-        } else {
+      .then(res => {
+        if (res.success && res.data) {
+          const d = res.data;
+          setFields({
+            date:             d.date,
+            batch:            d.batch,
+            feedQty:          String(d.feedQty !== undefined ? d.feedQty : ''),
+            water:            String(d.water !== undefined ? d.water : ''),
+            medications:      d.medications || '',
+            numberOfBirds:    String(d.numberOfBirds !== undefined ? d.numberOfBirds : ''),
+            mortality:        String(d.mortality !== undefined ? d.mortality : '0'),
+            birdsSold:        String(d.birdsSold !== undefined ? d.birdsSold : '0'),
+            avgWeight:        String(d.avgWeight !== undefined ? d.avgWeight : ''),
+            pricePerKg:       String(d.pricePerKg !== undefined ? d.pricePerKg : ''),
+            price:            String(d.price !== undefined ? d.price : ''),
+            expenses:         String(d.expenses !== undefined ? d.expenses : '0'),
+            notes:            d.notes || '',
+          });
+          setNumberOfBirds(String(d.numberOfBirds !== undefined ? d.numberOfBirds : ''));
+          setAvgWeight(String(d.avgWeight !== undefined ? d.avgWeight : ''));
+          setBirdsSold(String(d.birdsSold !== undefined ? d.birdsSold : '0'));
+          setPricePerKg(String(d.pricePerKg !== undefined ? d.pricePerKg : ''));
           setIsPrefilled(false);
+        } else {
+          // No report for this date — pull live birds from the LAST submitted report
+          fetch(`/api/broiler-farm?batch=${encodeURIComponent(batchName)}&last=1`)
+            .then(r => r.json())
+            .then(data => {
+              if (data && data.liveBirds !== undefined) {
+                const val = String(data.liveBirds);
+                setFields(prev => ({
+                  ...prev,
+                  date:             reportDate,
+                  batch:            batchName,
+                  feedQty:          '',
+                  water:            '',
+                  medications:      '',
+                  numberOfBirds:    val,
+                  mortality:        '0',
+                  birdsSold:        '0',
+                  avgWeight:        '',
+                  pricePerKg:       '',
+                  price:            '',
+                  expenses:         '0',
+                  notes:            '',
+                }));
+                setNumberOfBirds(val);
+                setAvgWeight('');
+                setBirdsSold('0');
+                setPricePerKg('');
+                setIsPrefilled(true);
+              } else {
+                setIsPrefilled(false);
+              }
+            })
+            .catch(() => {
+              setIsPrefilled(false);
+            });
         }
       })
       .catch(() => {
         setIsPrefilled(false);
       });
-  }, [fields.batch]);
+  }, []);
+
+  // When user changes batch or date, load the corresponding report
+  useEffect(() => {
+    loadCurrentReport(fields.batch, fields.date);
+  }, [fields.batch, fields.date, loadCurrentReport]);
 
   function updateField(name: keyof typeof fields, value: string) {
     const updated = { ...fields, [name]: value };
@@ -258,7 +316,8 @@ export function BroilerFarmForm({ onSubmitSuccess }: { onSubmitSuccess?: () => v
         toast('✅ Report submitted successfully!', 'success');
       }
 
-      resetForm();
+      // Force reload after submit so the saved data stays visible on screen
+      loadCurrentReport(fields.batch, fields.date, true);
       router.refresh();
       onSubmitSuccess?.();
     } catch (error: unknown) {

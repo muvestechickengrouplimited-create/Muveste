@@ -153,7 +153,18 @@ export default function BroilerFarmDashboard() {
   const todayRecords  = filteredRecords.filter((r) => r.date === todayStr);
   
   // Summary card metrics (today, filtered by batch)
-  const totalLiveBirds = todayRecords.reduce((s, r) => s + (r.liveBirds  || 0), 0);
+  const totalLiveBirds = React.useMemo(() => {
+    if (selectedBatch === 'All') {
+      return batches.reduce((sum, b) => {
+        const bRows = records.filter(r => r.batch === b[0]);
+        return sum + (bRows[0]?.liveBirds || 0);
+      }, 0);
+    } else {
+      const bRows = records.filter(r => r.batch === selectedBatch);
+      return bRows[0]?.liveBirds || 0;
+    }
+  }, [records, batches, selectedBatch]);
+
   const revenue        = todayRecords.reduce((s, r) => s + (r.revenue    || 0), 0);
   const expenses       = todayRecords.reduce((s, r) => s + (r.expenses   || 0), 0);
   const profit         = revenue - expenses;
@@ -260,7 +271,7 @@ export default function BroilerFarmDashboard() {
             const batchRows = records.filter(r => r.batch === batch[0]);
             const batchToday = batchRows.find(r => r.date === todayStr);
             const batchRevenue = batchRows.reduce((sum, r) => sum + (r.revenue || 0), 0);
-            const batchLiveBirds = batchToday?.liveBirds || 0;
+            const batchLiveBirds = batchRows[0]?.liveBirds || 0;
 
             return (
               <div key={batch[0]} className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
