@@ -95,9 +95,9 @@ export async function GET(request: Request) {
       const brDayRows = brData.filter(r => normalizeDate(r[0]) === normalizedDate);
       const bnDayRows = bnData.filter(r => normalizeDate(r[0]) === normalizedDate);
       let bkRev = 0, bkExp = 0, brRev = 0, brExp = 0, bnRev = 0, bnExp = 0;
-      for (const r of bkDayRows) { bkRev += parseNum(r[7]); bkExp += parseNum(r[6]); }
-      for (const r of brDayRows) { brRev += parseNum(r[7]); brExp += parseNum(r[6]); }
-      for (const r of bnDayRows) { bnRev += parseNum(r[7]); bnExp += parseNum(r[6]); }
+      for (const r of bkDayRows) { bkRev += parseNum(r[8]); bkExp += parseNum(r[7]); }
+      for (const r of brDayRows) { brRev += parseNum(r[8]); brExp += parseNum(r[7]); }
+      for (const r of bnDayRows) { bnRev += parseNum(r[8]); bnExp += parseNum(r[7]); }
       const buRev = bkRev + brRev + bnRev;
       const buExp = bkExp + brExp + bnExp;
 
@@ -256,9 +256,9 @@ export async function GET(request: Request) {
       const brRows = brData.filter(r => normalizeDate(r[0]) === dateStr);
       const bnRows = bnData.filter(r => normalizeDate(r[0]) === dateStr);
       let bkRev = 0, bkExp = 0, brRev = 0, brExp = 0, bnRev = 0, bnExp = 0;
-      for (const r of bkRows) { bkRev += parseNum(r[7]); bkExp += parseNum(r[6]); }
-      for (const r of brRows) { brRev += parseNum(r[7]); brExp += parseNum(r[6]); }
-      for (const r of bnRows) { bnRev += parseNum(r[7]); bnExp += parseNum(r[6]); }
+      for (const r of bkRows) { bkRev += parseNum(r[8]); bkExp += parseNum(r[7]); }
+      for (const r of brRows) { brRev += parseNum(r[8]); brExp += parseNum(r[7]); }
+      for (const r of bnRows) { bnRev += parseNum(r[8]); bnExp += parseNum(r[7]); }
       const buRev = bkRev + brRev + bnRev;
       let buExp = bkExp + brExp + bnExp;
 

@@ -18,6 +18,6 @@ export default function robots():
         '/api/',
       ],
     },
-    sitemap: 'https://muveste.rw/sitemap.xml',
+    sitemap: 'https://muveste.com/sitemap.xml',
   }
 }

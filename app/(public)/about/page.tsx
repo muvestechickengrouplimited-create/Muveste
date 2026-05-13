@@ -6,7 +6,7 @@ export const metadata: Metadata = {
   title: 'About Us | Muveste',
   description: 'Discover Muveste—Rwanda\'s premium broiler farm and fresh butcher meat outlets network.',
   alternates: {
-    canonical: 'https://muveste.rw/about',
+    canonical: 'https://muveste.com/about',
   },
 };
 

@@ -19,10 +19,11 @@ import { auth } from '../../../lib/firebase';
 interface butcherRecord {
   date: string;
   meatReceived: number;
+  buyingPricePerKg: number;
+  totalCost: number;
   meatSold: number;
-  pricePerKg: number;
+  sellingPricePerKg: number;
   damaged: number;
-  stockLeft: number;
   expenses: number;
   totalSales: number;
   profit: number;
@@ -239,12 +240,13 @@ export default function ButcherKibungoDashboard() {
                       <TableHeader>
                         <TableRow>
                           <TableHead>Date</TableHead>
-                          <TableHead>Meat Sold</TableHead>
-                          <TableHead>Price/kg</TableHead>
+                          <TableHead>Received</TableHead>
+                          <TableHead>Buying/kg</TableHead>
+                          <TableHead>Sold</TableHead>
+                          <TableHead>Selling/kg</TableHead>
                           <TableHead>Total Sales</TableHead>
-                          <TableHead>Stock Left</TableHead>
-                          <TableHead>Butcher Exp</TableHead>
-                          <TableHead>Net Profit</TableHead>
+                          <TableHead>Total Cost</TableHead>
+                          <TableHead>Profit</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -254,19 +256,22 @@ export default function ButcherKibungoDashboard() {
                               {formatDate(record.date)}
                             </TableCell>
                             <TableCell className="font-mono">
+                              {record.meatReceived.toFixed(2)} kg
+                            </TableCell>
+                            <TableCell className="font-mono text-gray-600">
+                              {record.buyingPricePerKg.toLocaleString()}
+                            </TableCell>
+                            <TableCell className="font-mono text-blue-600">
                               {record.meatSold.toFixed(2)} kg
                             </TableCell>
                             <TableCell className="font-mono text-gray-600">
-                              {record.pricePerKg.toLocaleString()}
+                              {record.sellingPricePerKg.toLocaleString()}
                             </TableCell>
                             <TableCell className="font-mono text-[#E07B00] font-semibold">
                               {formatRWF(record.totalSales)}
                             </TableCell>
-                            <TableCell className="font-mono text-blue-600">
-                              {record.stockLeft.toFixed(2)} kg
-                            </TableCell>
-                            <TableCell className="font-mono text-gray-500">
-                              {formatRWF(record.expenses)}
+                            <TableCell className="font-mono text-red-500">
+                              {formatRWF(record.totalCost)}
                             </TableCell>
                             <TableCell
                               className={`font-mono font-semibold ${record.profit >= 0 ? 'text-[#1B6B3A]' : 'text-[#D9534F]'
@@ -305,51 +310,24 @@ function ButcherKibungoMobile() {
 
   // Field states
   const [meatReceived, setMeatReceived] = useState('');
+  const [buyingPricePerKg, setBuyingPricePerKg] = useState('');
   const [meatSold, setMeatSold] = useState('');
-  const [pricePerKg, setPricePerKg] = useState('');
+  const [sellingPricePerKg, setSellingPricePerKg] = useState('');
   const [damaged, setDamaged] = useState('');
   const [expenses, setExpenses] = useState('');
   const [notes, setNotes] = useState('');
-  const [previousStock, setPreviousStock] = useState(0);
-  const [stockLeft, setStockLeft] = useState(0);
 
   // Restore from localStorage (removed to prevent stale data)
   useEffect(() => {
     // Only API pre-fetching is used now
   }, []);
 
-  // Fetch previous stock 
-  useEffect(() => {
-    async function fetchPreviousStock() {
-      try {
-        const token = await auth.currentUser?.getIdToken();
-        if (!token) return;
-        const res = await fetch('/api/butcher-kibungo', {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        if (res.ok) {
-          const json = await res.json();
-          if (json.data && Array.isArray(json.data) && json.data.length > 0) {
-             setPreviousStock(Number(json.data[0].stockLeft) || 0);
-          }
-        }
-      } catch (err) {
-        console.warn('Failed to fetch previous stock', err);
-      }
-    }
-    fetchPreviousStock();
-  }, []);
-
-  const totalSales = (Number(meatSold) || 0) * (Number(pricePerKg) || 0);
-  const profit = totalSales - (Number(expenses) || 0);
-
-  useEffect(() => {
-    const left = previousStock + (Number(meatReceived) || 0) - (Number(meatSold) || 0) - (Number(damaged) || 0);
-    setStockLeft(left);
-  }, [meatReceived, meatSold, damaged, previousStock]);
+  const totalCost = (Number(meatReceived) || 0) * (Number(buyingPricePerKg) || 0);
+  const totalSales = (Number(meatSold) || 0) * (Number(sellingPricePerKg) || 0);
+  const profit = totalSales - totalCost - (Number(expenses) || 0);
 
   const resetForm = () => {
-    setMeatReceived(''); setMeatSold(''); setPricePerKg('');
+    setMeatReceived(''); setBuyingPricePerKg(''); setMeatSold(''); setSellingPricePerKg('');
     setDamaged(''); setExpenses(''); setNotes('');
     setSubmitted(false); setCurrentStep(1);
     setSelectedDate(new Date().toISOString().split('T')[0]);
@@ -357,8 +335,8 @@ function ButcherKibungoMobile() {
 
   const nextStep = () => {
     if (currentStep === 1) {
-      if (!meatReceived || !meatSold || !pricePerKg)
-        return alert('Please fill required fields (Received, Sold, Price)');
+      if (!meatReceived || !buyingPricePerKg || !meatSold || !sellingPricePerKg)
+        return alert('Please fill required fields (Received, Buying Price, Sold, Selling Price)');
     }
     if (currentStep === 2) {
       if (!damaged || !expenses)
@@ -378,8 +356,9 @@ function ButcherKibungoMobile() {
       const payload = {
         date: selectedDate,
         meatReceived: Number(meatReceived),
+        buyingPricePerKg: Number(buyingPricePerKg),
         meatSold: Number(meatSold),
-        pricePerKg: Number(pricePerKg),
+        sellingPricePerKg: Number(sellingPricePerKg),
         damaged: Number(damaged),
         expenses: Number(expenses),
         notes,
@@ -393,21 +372,6 @@ function ButcherKibungoMobile() {
 
       if (!res.ok) throw new Error('Failed to submit report');
       
-      // Also re-fetch the latest stock 
-      try {
-        const fetchRes = await fetch('/api/butcher-kibungo', {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        if (fetchRes.ok) {
-          const json = await fetchRes.json();
-          if (json.data && Array.isArray(json.data) && json.data.length > 0) {
-             setPreviousStock(Number(json.data[0].stockLeft) || 0);
-          }
-        }
-      } catch (err) {
-        console.warn('Failed to update stock after submit', err);
-      }
-
       setSubmitted(true);
       router.refresh();
     } catch (err) {
@@ -418,7 +382,7 @@ function ButcherKibungoMobile() {
     }
   };
 
-  const stepTitle = currentStep === 1 ? 'Stock figures' : currentStep === 2 ? 'Expenses & damage' : 'Notes & submit';
+  const stepTitle = currentStep === 1 ? 'Stock & Prices' : currentStep === 2 ? 'Expenses & Damage' : 'Notes & Submit';
 
   if (submitted) {
     return (
@@ -470,17 +434,23 @@ function ButcherKibungoMobile() {
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
-                <label className="text-xs font-semibold text-gray-500 block">Meat Received (kg) <span className="text-[#E07B00]">*</span></label>
+                <label className="text-xs font-semibold text-gray-500 block">Received (kg) <span className="text-[#E07B00]">*</span></label>
                 <input required type="number" min="0" step="0.01" value={meatReceived} onChange={e => setMeatReceived(e.target.value)} className="w-full bg-white border-2 border-gray-100 rounded-xl px-4 py-3 text-sm text-[#2D2D2D] outline-none focus:border-[#F5C518] focus:ring-2 focus:ring-[#F5C518]/20 min-h-[48px]" />
               </div>
               <div className="space-y-1">
-                <label className="text-xs font-semibold text-gray-500 block">Meat Sold (kg) <span className="text-[#E07B00]">*</span></label>
-                <input required type="number" min="0" step="0.01" value={meatSold} onChange={e => setMeatSold(e.target.value)} className="w-full bg-white border-2 border-gray-100 rounded-xl px-4 py-3 text-sm text-[#2D2D2D] outline-none focus:border-[#F5C518] focus:ring-2 focus:ring-[#F5C518]/20 min-h-[48px]" />
+                <label className="text-xs font-semibold text-gray-500 block">Buying Price <span className="text-[#E07B00]">*</span></label>
+                <input required type="number" min="0" step="1" value={buyingPricePerKg} onChange={e => setBuyingPricePerKg(e.target.value)} className="w-full bg-white border-2 border-gray-100 rounded-xl px-4 py-3 text-sm text-[#2D2D2D] outline-none focus:border-[#F5C518] focus:ring-2 focus:ring-[#F5C518]/20 min-h-[48px]" />
               </div>
             </div>
-            <div className="space-y-1">
-              <label className="text-xs font-semibold text-gray-500 block">Price Per kg (RWF) <span className="text-[#E07B00]">*</span></label>
-              <input required type="number" min="0" value={pricePerKg} onChange={e => setPricePerKg(e.target.value)} className="w-full bg-white border-2 border-gray-100 rounded-xl px-4 py-3 text-sm text-[#2D2D2D] outline-none focus:border-[#F5C518] focus:ring-2 focus:ring-[#F5C518]/20 min-h-[48px]" />
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-gray-500 block">Sold (kg) <span className="text-[#E07B00]">*</span></label>
+                <input required type="number" min="0" step="0.01" value={meatSold} onChange={e => setMeatSold(e.target.value)} className="w-full bg-white border-2 border-gray-100 rounded-xl px-4 py-3 text-sm text-[#2D2D2D] outline-none focus:border-[#F5C518] focus:ring-2 focus:ring-[#F5C518]/20 min-h-[48px]" />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-gray-500 block">Selling Price <span className="text-[#E07B00]">*</span></label>
+                <input required type="number" min="0" step="1" value={sellingPricePerKg} onChange={e => setSellingPricePerKg(e.target.value)} className="w-full bg-white border-2 border-gray-100 rounded-xl px-4 py-3 text-sm text-[#2D2D2D] outline-none focus:border-[#F5C518] focus:ring-2 focus:ring-[#F5C518]/20 min-h-[48px]" />
+              </div>
             </div>
             <button type="button" onClick={nextStep} className="w-full mt-4 bg-[#F5C518] text-[#2D2D2D] rounded-2xl py-4 text-sm font-bold active:scale-95 transition-transform">Next →</button>
           </div>
@@ -500,14 +470,13 @@ function ButcherKibungoMobile() {
             </div>
 
             <div className="grid grid-cols-2 gap-3 mt-4">
+              <div className="bg-red-50 border-2 border-red-100 rounded-2xl p-3">
+                <p className="text-[10px] font-bold text-red-400 tracking-wide mb-1 uppercase">Total Cost</p>
+                <p className="text-lg font-bold text-[#2D2D2D] tabular-nums">RWF {totalCost.toLocaleString()}</p>
+              </div>
               <div className="bg-[#FFF8E1] border-2 border-[#F5C518] rounded-2xl p-3">
                 <p className="text-[10px] font-bold text-[#E07B00] tracking-wide mb-1 uppercase">Total Sales</p>
                 <p className="text-lg font-bold text-[#2D2D2D] tabular-nums">RWF {totalSales.toLocaleString()}</p>
-              </div>
-              <div className="bg-blue-50 border-2 border-blue-100 rounded-2xl p-3">
-                <p className="text-[10px] font-bold text-blue-600 tracking-wide mb-1 uppercase">Stock Left</p>
-                <p className="text-lg font-bold text-[#2D2D2D] tabular-nums">{stockLeft.toFixed(2)} kg</p>
-                <p className="text-[9px] text-gray-500 mt-0.5">Incl. {previousStock.toFixed(2)}kg prev. stock</p>
               </div>
             </div>
 

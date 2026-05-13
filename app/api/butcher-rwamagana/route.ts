@@ -63,8 +63,9 @@ export async function POST(request: Request) {
     const {
       date,
       meatReceived,
+      buyingPricePerKg,
       meatSold,
-      pricePerKg,
+      sellingPricePerKg,
       damaged,
       expenses,
       notes,
@@ -73,8 +74,9 @@ export async function POST(request: Request) {
     if (
       date === undefined ||
       meatReceived === undefined ||
+      buyingPricePerKg === undefined ||
       meatSold === undefined ||
-      pricePerKg === undefined ||
+      sellingPricePerKg === undefined ||
       damaged === undefined ||
       expenses === undefined
     ) {
@@ -84,50 +86,27 @@ export async function POST(request: Request) {
       );
     }
 
-    // 3. Fetch previous stock
-    let previousStock = 0;
-    try {
-      const allRows = await getRows('butcher-rwamagana', true); // Bypass cache to get real-time stock
-      if (allRows && allRows.length > 1) {
-        // Find latest row
-        // Rows: Date, Received, Sold, Price, Damaged, Left, Exp, Total, Profit...
-        const locationRows = allRows.slice(1)
-            .sort((a, b) => new Date(b[0]).getTime() - new Date(a[0]).getTime());
-        
-        if (locationRows.length > 0) {
-          previousStock = parseNum(locationRows[0][5]); // Stock Left from most recent record
-        }
-      }
-    } catch (e) {
-      console.warn('Failed to fetch previous stock for butcher:', e);
-    }
-
     // 4. Server-side calculations (authoritative)
-    // New Logic: Total Sales = Meat Sold * Price
-    // Stock Left = Previous Stock + Meat Received - Meat Sold - Damaged
     const mRec = parseNum(meatReceived);
+    const mBuyPrc = parseNum(buyingPricePerKg);
     const mSold = parseNum(meatSold);
-    const mPrc = parseNum(pricePerKg);
+    const mSelPrc = parseNum(sellingPricePerKg);
     const mDmg = parseNum(damaged);
     const mExp = parseNum(expenses);
 
-    const totalSales = mSold * mPrc;
-    const stockLeft = previousStock + mRec - mSold - mDmg;
-    // Profit = Total Sales - Butcher Expenses
-    const profit = totalSales - mExp;
+    const totalCost = mRec * mBuyPrc;
+    const totalSales = mSold * mSelPrc;
+    const profit = totalSales - totalCost - mExp;
     const now = new Date();
 
-    // 5. Values order must match sheet headers exactly:
-    // 0:Date | 1:Meat Received (kg) | 2:Meat Sold (kg) | 3:Price/kg (RWF) | 4:Damaged (kg)
-    // 5:Stock left(kgs) | 6:Expenses (RWF) | 7:Total Sales (RWF) | 8:Profit (RWF) | 9:Notes 
-    // 10:Submitted By | 11:Timestamp
     const rowData = [
       date,
       mRec,
+      mBuyPrc,
+      totalCost,
       mSold,
-      mPrc,
+      mSelPrc,
       mDmg,
-      stockLeft,
       mExp,
       totalSales,
       profit,
@@ -204,11 +183,11 @@ export async function GET(request: Request) {
           rowDate.getMonth() === thisMonth &&
           rowDate.getFullYear() === thisYear
         ) {
-          totalMeatSold += parseNum(row[2]);
-          totalSales += parseNum(row[7]); // Updated index
-          totalExpenses += parseNum(row[6]); // Butcher Exp
-          totalDamaged += parseNum(row[4]);
-          netProfit += parseNum(row[8]); // Updated index
+          totalMeatSold += parseNum(row[4]);
+          totalSales += parseNum(row[8]); 
+          totalExpenses += parseNum(row[7]); 
+          totalDamaged += parseNum(row[6]);
+          netProfit += parseNum(row[9]); 
         }
       }
 
@@ -233,16 +212,17 @@ export async function GET(request: Request) {
       .map((row) => ({
         date: row[0] ?? '',
         meatReceived: parseNum(row[1]),
-        meatSold: parseNum(row[2]),
-        pricePerKg: parseNum(row[3]),
-        damaged: parseNum(row[4]),
-        stockLeft: parseNum(row[5]),
-        expenses: parseNum(row[6]),
-        totalSales: parseNum(row[7]),
-        profit: parseNum(row[8]),
-        notes: row[9] ?? '',
-        submittedBy: row[10] ?? '',
-        timestamp: row[11] ?? '',
+        buyingPricePerKg: parseNum(row[2]),
+        totalCost: parseNum(row[3]),
+        meatSold: parseNum(row[4]),
+        sellingPricePerKg: parseNum(row[5]),
+        damaged: parseNum(row[6]),
+        expenses: parseNum(row[7]),
+        totalSales: parseNum(row[8]),
+        profit: parseNum(row[9]),
+        notes: row[10] ?? '',
+        submittedBy: row[11] ?? '',
+        timestamp: row[12] ?? '',
       }))
       .sort(
         (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()

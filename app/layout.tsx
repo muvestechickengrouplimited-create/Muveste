@@ -11,7 +11,7 @@ const mono = JetBrains_Mono({ subsets: ['latin'], variable: '--font-mono', displ
 export const metadata: Metadata = {
   title: 'Muveste — Premium Quality Poultry Rwanda',
   description: 'Order fresh premium chicken meat in Rwanda. Daily fresh stock delivered from our farm. Located in Ngoma, Nyabugogo Kigali.',
-  metadataBase: new URL('https://muveste.rw'),
+  metadataBase: new URL('https://muveste.com'),
   keywords: [
     'chicken meat Rwanda',
     'fresh chicken Kigali',
@@ -27,7 +27,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'Muveste — Premium Quality Poultry',
     description: 'Fresh premium chicken meat in Rwanda. Daily fresh stock!',
-    url: 'https://muveste.rw',
+    url: 'https://muveste.com',
     siteName: 'Muveste',
     locale: 'en_RW',
     type: 'website',
@@ -37,7 +37,7 @@ export const metadata: Metadata = {
     follow: true,
   },
   alternates: {
-    canonical: 'https://muveste.rw',
+    canonical: 'https://muveste.com',
   },
   icons: {
     icon: [

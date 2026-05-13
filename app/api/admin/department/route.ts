@@ -117,21 +117,22 @@ export async function GET(request: Request) {
       }
 
       if (sheetName.startsWith('butcher')) {
-        // [date(0), meatRec(1), meatSold(2), priceKg(3), damaged(4), stockLeft(5), expenses(6), totalSales(7), profit(8), notes(9), by(10), ts(11)]
         return NextResponse.json({
           department: resolvedName,
           date,
           fields: [
             { label: 'Meat received', value: `${parseNum(todayRow[1]).toLocaleString()} kg` },
-            { label: 'Meat sold', value: `${parseNum(todayRow[2]).toLocaleString()} kg` },
-            { label: 'Price per kg', value: `RWF ${parseNum(todayRow[3]).toLocaleString()}` },
-            { label: 'Stock left', value: `${parseNum(todayRow[5]).toLocaleString()} kg` },
+            { label: 'Buying price', value: `RWF ${parseNum(todayRow[2]).toLocaleString()}` },
+            { label: 'Meat sold', value: `${parseNum(todayRow[4]).toLocaleString()} kg` },
+            { label: 'Selling price', value: `RWF ${parseNum(todayRow[5]).toLocaleString()}` },
+            { label: 'Damaged', value: `${parseNum(todayRow[6]).toLocaleString()} kg` },
+            { label: 'Total cost', value: `RWF ${parseNum(todayRow[3]).toLocaleString()}` },
           ],
           medications: null,
-          revenue: parseNum(todayRow[7]),
-          expenses: parseNum(todayRow[6]),
-          profit: parseNum(todayRow[8]),
-          notes: todayRow[9] || null,
+          revenue: parseNum(todayRow[8]),
+          expenses: parseNum(todayRow[7]),
+          profit: parseNum(todayRow[9]),
+          notes: todayRow[10] || null,
         });
       }
     }

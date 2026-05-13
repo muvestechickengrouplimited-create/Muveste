@@ -7,12 +7,12 @@ import { Button } from '../ui/Button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../ui/Card';
 import { useToast } from '../ui/Toast';
 
-// ─── Validation ─────────────────────────────────────────────────────────────
 interface ValidationErrors {
   date?: string;
   meatReceived?: string;
+  buyingPricePerKg?: string;
   meatSold?: string;
-  pricePerKg?: string;
+  sellingPricePerKg?: string;
   damaged?: string;
   expenses?: string;
   notes?: string;
@@ -21,8 +21,9 @@ interface ValidationErrors {
 function validate(fields: {
   date: string;
   meatReceived: string;
+  buyingPricePerKg: string;
   meatSold: string;
-  pricePerKg: string;
+  sellingPricePerKg: string;
   damaged: string;
   expenses: string;
   notes: string;
@@ -32,10 +33,12 @@ function validate(fields: {
     errors.date = 'Date is required';
   if (fields.meatReceived === '' || Number(fields.meatReceived) < 0)
     errors.meatReceived = 'Meat Received must be 0 or more';
+  if (fields.buyingPricePerKg === '' || Number(fields.buyingPricePerKg) < 0)
+    errors.buyingPricePerKg = 'Buying Price/kg must be 0 or more';
   if (fields.meatSold === '' || Number(fields.meatSold) < 0)
     errors.meatSold = 'Meat Sold must be 0 or more';
-  if (fields.pricePerKg === '' || Number(fields.pricePerKg) < 0)
-    errors.pricePerKg = 'Price/kg must be 0 or more';
+  if (fields.sellingPricePerKg === '' || Number(fields.sellingPricePerKg) < 0)
+    errors.sellingPricePerKg = 'Selling Price/kg must be 0 or more';
   if (fields.damaged === '' || Number(fields.damaged) < 0)
     errors.damaged = 'Damaged must be 0 or more';
   if (fields.expenses === '' || Number(fields.expenses) < 0)
@@ -61,8 +64,9 @@ function ButcherNyabugogoForm() {
   const [fields, setFields] = useState({
     date: new Date().toISOString().split('T')[0],
     meatReceived: '',
+    buyingPricePerKg: '',
     meatSold: '',
-    pricePerKg: '',
+    sellingPricePerKg: '',
     damaged: '',
     expenses: '',
     notes: '',
@@ -77,45 +81,22 @@ function ButcherNyabugogoForm() {
 
   // ── Auto-calculated values ────────────────────────────────────────────────
   const meatReceivedNum = Number(fields.meatReceived) || 0;
+  const buyingPricePerKgNum = Number(fields.buyingPricePerKg) || 0;
   const meatSoldNum = Number(fields.meatSold) || 0;
-  const priceNum = Number(fields.pricePerKg) || 0;
-  const damagedNum = Number(fields.damaged) || 0;
+  const sellingPricePerKgNum = Number(fields.sellingPricePerKg) || 0;
   const expensesNum = Number(fields.expenses) || 0;
 
+  const [totalCost, setTotalCost] = useState(0);
   const [totalSales, setTotalSales] = useState(0);
-  const [stockLeft, setStockLeft] = useState(0);
   const [profit, setProfit] = useState(0);
-  const [previousStock, setPreviousStock] = useState(0);
-
-  // Fetch previous stock
-  useEffect(() => {
-    async function fetchPreviousStock() {
-      try {
-        const token = await auth.currentUser?.getIdToken();
-        if (!token) return;
-        const res = await fetch('/api/butcher-nyabugogo', {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        if (res.ok) {
-          const json = await res.json();
-          if (json.data && Array.isArray(json.data) && json.data.length > 0) {
-             setPreviousStock(Number(json.data[0].stockLeft) || 0);
-          }
-        }
-      } catch (err) {
-        console.warn('Failed to fetch previous stock', err);
-      }
-    }
-    fetchPreviousStock();
-  }, []);
 
   useEffect(() => {
-    const sales = meatSoldNum * priceNum;
-    const stock = previousStock + meatReceivedNum - meatSoldNum - damagedNum;
+    const cost = meatReceivedNum * buyingPricePerKgNum;
+    const sales = meatSoldNum * sellingPricePerKgNum;
+    setTotalCost(cost);
     setTotalSales(sales);
-    setStockLeft(stock);
-    setProfit(sales - expensesNum);
-  }, [meatSoldNum, priceNum, damagedNum, expensesNum, meatReceivedNum, previousStock]);
+    setProfit(sales - cost - expensesNum);
+  }, [meatReceivedNum, buyingPricePerKgNum, meatSoldNum, sellingPricePerKgNum, expensesNum]);
 
   // ── Field update ──────────────────────────────────────────────────────────
   function updateField(name: keyof typeof fields, value: string) {
@@ -129,8 +110,9 @@ function ButcherNyabugogoForm() {
     setFields({
       date: new Date().toISOString().split('T')[0],
       meatReceived: '',
+      buyingPricePerKg: '',
       meatSold: '',
-      pricePerKg: '',
+      sellingPricePerKg: '',
       damaged: '',
       expenses: '',
       notes: '',
@@ -163,8 +145,9 @@ function ButcherNyabugogoForm() {
       const payload = {
         date: fields.date,
         meatReceived: Number(fields.meatReceived),
+        buyingPricePerKg: Number(fields.buyingPricePerKg),
         meatSold: Number(fields.meatSold),
-        pricePerKg: Number(fields.pricePerKg),
+        sellingPricePerKg: Number(fields.sellingPricePerKg),
         damaged: Number(fields.damaged),
         expenses: Number(fields.expenses),
         notes: fields.notes,
@@ -183,22 +166,6 @@ function ButcherNyabugogoForm() {
       if (!res.ok) throw new Error(result.error || 'Failed to submit report');
 
       toast('✅ Butchery daily report submitted successfully!', 'success');
-      // localStorage.setItem(MEMORY_KEY, JSON.stringify(fields)); // Stopped saving for desktop autofill
-      
-      // Right after submit, re-fetch the previous stock so the new submission reflects as the next day's starting stock.
-      try {
-        const fetchRes = await fetch('/api/butcher-nyabugogo', {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        if (fetchRes.ok) {
-          const json = await fetchRes.json();
-          if (json.data && Array.isArray(json.data) && json.data.length > 0) {
-             setPreviousStock(Number(json.data[0].stockLeft) || 0);
-          }
-        }
-      } catch (err) {
-        console.warn('Failed to update stock after submit', err);
-      }
 
       resetForm();
       router.refresh();
@@ -224,10 +191,10 @@ function ButcherNyabugogoForm() {
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-6" noValidate>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
             {/* Date */}
-            <div className="w-full space-y-1.5">
+            <div className="w-full space-y-1.5 md:col-span-2">
               <label htmlFor="bt-date" className="block text-sm font-medium text-gray-700">
                 Date
               </label>
@@ -263,6 +230,27 @@ function ButcherNyabugogoForm() {
               )}
             </div>
 
+            {/* Buying Price */}
+            <div className="w-full space-y-1.5">
+              <label htmlFor="bt-buyingPricePerKg" className="block text-sm font-medium text-gray-700">
+                Buying Price/kg (RWF) <span className="text-xs text-gray-400 font-normal ml-1">Price you paid per kg</span>
+              </label>
+              <input
+                id="bt-buyingPricePerKg"
+                type="number"
+                min="0"
+                step="1"
+                placeholder="e.g. 3500"
+                value={fields.buyingPricePerKg}
+                onChange={(e) => updateField('buyingPricePerKg', e.target.value)}
+                required
+                className={inputClass}
+              />
+              {errors.buyingPricePerKg && (
+                <p className="text-sm text-red-500">{errors.buyingPricePerKg}</p>
+              )}
+            </div>
+
             {/* Meat Sold */}
             <div className="w-full space-y-1.5">
               <label htmlFor="bt-meatSold" className="block text-sm font-medium text-gray-700">
@@ -284,24 +272,24 @@ function ButcherNyabugogoForm() {
               )}
             </div>
 
-            {/* Price Per kg */}
+            {/* Selling Price */}
             <div className="w-full space-y-1.5">
-              <label htmlFor="bt-pricePerKg" className="block text-sm font-medium text-gray-700">
-                Price/kg (RWF)
+              <label htmlFor="bt-sellingPricePerKg" className="block text-sm font-medium text-gray-700">
+                Selling Price/kg (RWF) <span className="text-xs text-gray-400 font-normal ml-1">Price you sell per kg</span>
               </label>
               <input
-                id="bt-pricePerKg"
+                id="bt-sellingPricePerKg"
                 type="number"
                 min="0"
                 step="1"
                 placeholder="e.g. 4000"
-                value={fields.pricePerKg}
-                onChange={(e) => updateField('pricePerKg', e.target.value)}
+                value={fields.sellingPricePerKg}
+                onChange={(e) => updateField('sellingPricePerKg', e.target.value)}
                 required
                 className={inputClass}
               />
-              {errors.pricePerKg && (
-                <p className="text-sm text-red-500">{errors.pricePerKg}</p>
+              {errors.sellingPricePerKg && (
+                <p className="text-sm text-red-500">{errors.sellingPricePerKg}</p>
               )}
             </div>
 
@@ -329,7 +317,7 @@ function ButcherNyabugogoForm() {
             {/* Expenses */}
             <div className="w-full space-y-1.5">
               <label htmlFor="bt-expenses" className="block text-sm font-medium text-gray-700">
-                Expenses (RWF)
+                Other Expenses (RWF) <span className="text-xs text-gray-400 font-normal ml-1">Transport, packaging, etc</span>
               </label>
               <input
                 id="bt-expenses"
@@ -351,53 +339,42 @@ function ButcherNyabugogoForm() {
           {/* ── Auto-calculated boxes ──────────────────────────────────── */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
 
+            {/* Total Cost */}
+            <div className="bg-red-50 border border-red-100 rounded-xl p-4">
+              <p className="text-xs text-red-400 font-bold uppercase tracking-wide">
+                TOTAL COST
+              </p>
+              <p className="text-2xl font-bold font-mono text-red-500">
+                RWF {totalCost.toLocaleString()}
+              </p>
+              <p className="text-xs text-gray-400 mt-1">
+                Received × Buying Price
+              </p>
+            </div>
+
             {/* Total Sales */}
-            <div className="bg-[#FFF8E1] border-2 border-[#F5C518] rounded-xl p-4">
-              <label className="text-sm font-semibold text-[#E07B00]">
-                Total Sales (RWF)
-              </label>
-              <p className="text-xl font-bold text-[#2D2D2D] font-mono mt-1">
-                {totalSales.toLocaleString()}
+            <div className="bg-[#FEF3C7] border-2 border-[#D97706] rounded-xl p-4">
+              <p className="text-xs font-bold text-[#D97706] uppercase tracking-wide">
+                TOTAL SALES
               </p>
-              <p className="text-[10px] text-gray-400 mt-1">
-                Auto: Meat Sold × Price/kg
+              <p className="text-2xl font-bold font-mono text-[#1a1814]">
+                RWF {totalSales.toLocaleString()}
               </p>
-            </div>
-
-            {/* Stock Left */}
-            <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-4">
-              <label className="text-sm font-semibold text-blue-700">
-                Stock Left (kg)
-              </label>
-              <p className="text-xl font-bold text-[#2D2D2D] font-mono mt-1">
-                {stockLeft.toFixed(2)}
-              </p>
-              <p className="text-[10px] text-gray-500 mt-1 mb-1">
-                Incl. {previousStock.toFixed(2)} kg previous stock
-              </p>
-              <p className="text-[10px] text-gray-400">
-                Auto: Prev + Rec - Sold - Dmg
+              <p className="text-xs text-gray-400 mt-1">
+                Sold × Selling Price
               </p>
             </div>
 
-            {/* Profit — green if positive, red if negative */}
-            <div
-              className={`border-2 rounded-xl p-4 ${profit >= 0
-                ? 'bg-[#EAF5EE] border-[#1B6B3A]'
-                : 'bg-red-50 border-[#D9534F]'
-                }`}
-            >
-              <label className="text-sm font-semibold text-gray-700">
-                Net Profit (RWF)
-              </label>
-              <p
-                className={`text-xl font-bold font-mono mt-1 ${profit >= 0 ? 'text-[#1B6B3A]' : 'text-[#D9534F]'
-                  }`}
-              >
-                {profit.toLocaleString()}
+            {/* Profit */}
+            <div className={`rounded-xl p-4 border-2 ${profit >= 0 ? 'bg-[#e8f5e8] border-[#006400]/30' : 'bg-red-50 border-red-200'}`}>
+              <p className={`text-xs font-bold uppercase tracking-wide ${profit >= 0 ? 'text-[#006400]' : 'text-red-500'}`}>
+                {profit >= 0 ? 'PROFIT' : 'LOSS'}
               </p>
-              <p className="text-[10px] text-gray-400 mt-1">
-                Auto: Sales - Exp
+              <p className={`text-2xl font-bold font-mono ${profit >= 0 ? 'text-[#006400]' : 'text-red-500'}`}>
+                RWF {Math.abs(profit).toLocaleString()}
+              </p>
+              <p className="text-xs text-gray-400 mt-1">
+                Sales - Cost - Expenses
               </p>
             </div>
           </div>

@@ -125,11 +125,11 @@ export async function GET(request: Request) {
       }
 
       let bkRev = 0, bkExp = 0;
-      for (const r of bkDay) { bkRev += parseNum(r[7]); bkExp += parseNum(r[6]); }
+      for (const r of bkDay) { bkRev += parseNum(r[8]); bkExp += parseNum(r[7]); }
       let brRev = 0, brExp = 0;
-      for (const r of brDay) { brRev += parseNum(r[7]); brExp += parseNum(r[6]); }
+      for (const r of brDay) { brRev += parseNum(r[8]); brExp += parseNum(r[7]); }
       let bnRev = 0, bnExp = 0;
-      for (const r of bnDay) { bnRev += parseNum(r[7]); bnExp += parseNum(r[6]); }
+      for (const r of bnDay) { bnRev += parseNum(r[8]); bnExp += parseNum(r[7]); }
 
       bkExp += (dayExtras.bk || 0);
       brExp += (dayExtras.br || 0);
