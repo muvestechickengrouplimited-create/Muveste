@@ -1,83 +1,83 @@
-# 30 Plus Poultry Management System
+# Muveste Poultry Management System
 
-Welcome to the **30 Plus Poultry** web application! This platform is designed to manage reporting, tracking, and operations for various farm departments including Egg Farms, Broiler Farms, Butchers, and Finance, providing comprehensive dashboards and tracking systems.
-
----
-
-## 🚀 Tech Stack & Core Technologies
-
-This project is built using modern web development tools and frameworks ensuring performance, scalability, and ease of use:
-
-- **Framework**: [Next.js](https://nextjs.org/) (App Router, v14.1.4)
-- **UI Library**: [React](https://react.dev/) (v18.2.0)
-- **Language**: [TypeScript](https://www.typescriptlang.org/) for robust typing and error prevention.
-- **Styling**: [Tailwind CSS](https://tailwindcss.com/) for fast, responsive, and customizable designs.
-- **Backend/Database**: [Firebase](https://firebase.google.com/) (`firebase` and `firebase-admin`).
-- **Integrations**: [Google APIs](https://github.com/googleapis/google-api-nodejs-client) for Google Sheets data syncing and extraction.
-- **Icons**: `react-icons`
+Welcome to **Muveste**, a comprehensive poultry management platform designed for tracking operations across broiler farms, butcheries, and finance departments.
 
 ---
 
-## 🌍 Hosting & Deployment
+## 🚀 Tech Stack
 
-The application utilizes the following platforms for hosting, domains, and serverless deployment:
+This project is built with a modern, scalable stack to ensure performance and reliability:
 
-### 1. Web Hosting & Domain Registry
-The custom domain and standard hosting services are provided by **WebHosting Rwanda**.
-- **Provider**: [https://webhosting.co.rw/](https://webhosting.co.rw/)
-- **Login Email**: `30plusltd@gmail.com`
-- **Password**: `30plusltd@gmail.com`
-
-### 2. Vercel (Frontend Deployment)
-The frontend of this application is continuously deployed via **Vercel**, hooked directly to our GitHub repository. This ensures fast edge network delivery and instant deployments upon pushing code.
-
-### 3. Firebase (Backend Services)
-We rely on **Firebase** to handle backend processes, data configurations, or application services required for operation.
+- **Framework**: [Next.js 15](https://nextjs.org/) (App Router)
+- **Library**: [React 18](https://react.dev/)
+- **Language**: [TypeScript](https://www.typescriptlang.org/)
+- **Styling**: [Tailwind CSS](https://tailwindcss.com/)
+- **Backend**: [Firebase](https://firebase.google.com/) (Firestore, Authentication, Admin SDK)
+- **Data Synchronization**: [Google Sheets API](https://developers.google.com/sheets/api)
+- **Email Integration**: [EmailJS](https://www.emailjs.com/)
+- **Icons**: [React Icons](https://react-icons.github.io/react-icons/)
 
 ---
 
-## 🔗 Source Control
+## 🔐 Project Accounts & Credentials
 
-The complete source code is securely hosted on GitHub.
-- **GitHub Account / Organization**: `30plusltd-stack`
-- *To deploy updates, simply push code to the main branch, and Vercel will automatically trigger a new deployment workflow.*
+The management of this project is divided between two primary email accounts. **Both accounts use the same password: `Muveste8388@`**.
+
+### 1. API & Services Account
+- **Email**: `muvestechickengroup@gmail.com`
+- **Used for**:
+  - **Firebase Console**: Managing database, storage, and auth.
+  - **Google Sheets**: Storing and extracting farm reporting data.
+  - **EmailJS**: Configuring email templates and SMTP settings.
+  - **App Settings**: General API configurations.
+
+### 2. Infrastructure & Operations Account
+- **Email**: *(Used for GitHub and Cloud Infrastructure)*
+- **Used for**:
+  - **GitHub**: Hosting the source code repository.
+  - **Vercel**: Managing frontend deployments and SSL.
+  - **Cloudflare**: Domain management and DNS for `muveste.com`.
+  - **Google Cloud Console**: Project-level API management.
+  - **Google Analytics**: Tracking website traffic and performance.
+
+> [!WARNING]
+> Keep these credentials secure. Ensure that any `.env.local` files containing secret keys are never committed to version control.
 
 ---
 
-## 💻 Running the Project Locally
+## 💻 Local Development
 
-If you are a developer looking to contribute or test features locally, follow these steps:
+Follow these steps to set up the project on your local machine:
 
-1. **Clone the repository**:
+1. **Clone the Repository**:
    ```bash
-   git clone https://github.com/30plusltd-stack/{repository-name}.git
+   git clone https://github.com/30plusltd-stack/muveste.git
    ```
 
-2. **Navigate to the project directory**:
-   ```bash
-   cd 30-plus
-   ```
-
-3. **Install dependencies**:
+2. **Install Dependencies**:
    ```bash
    npm install
    ```
 
-4. **Run the development server**:
+3. **Configure Environment Variables**:
+   Create a `.env.local` file in the root directory and add the necessary Firebase and Google API keys (refer to the API & Services account).
+
+4. **Run the Development Server**:
    ```bash
    npm run dev
    ```
 
-5. Open [http://localhost:3000](http://localhost:3000) in your browser to see the result.
+5. **Access the App**:
+   Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 ---
 
-## 📊 Features & Dashboards
-* **Admin Dashboard**: Comprehensive overview of metrics across all active departments.
-* **Finance Tracking**: Profit reporting, multi-department expense tracking, and data calculations.
-* **Egg Farm / Kiosks**: Reporting, stock persistence, egg classification (damaged vs. sold), and revenue tracking.
-* **Broiler / Butcher**: Real-time extraction of performance metrics and data synchronization.
+## 📊 Core Features
+- **Admin Dashboard**: Real-time overview of all farm metrics.
+- **Butchery Management**: Location-specific reporting (Nyabugogo, Kibungo, Rwamagana).
+- **Broiler Farm Tracking**: Mortality rates, feed consumption, and growth tracking.
+- **Finance Portal**: Expense tracking, profit analysis, and monthly reports.
 
 ---
 
-*This application is strictly for internal use and management. Ensure credentials and configuration environments remain secure and are not publicly exposed outside of proper documentation.*
+*Muveste — Empowering Poultry Management.*

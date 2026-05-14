@@ -101,9 +101,16 @@ function ButcherKibungoForm() {
   const damagedNum = Number(fields.damaged) || 0;
   const expensesNum = Number(fields.expenses) || 0;
 
-  // The math ALWAYS uses previousStock (Yesterday's closing) as the starting point.
-  // This allows the user to 'edit' today's report correctly.
-  const stockLeft = previousStock + meatReceivedNum - meatSoldNum - damagedNum;
+  // Detect if the user has started filling in data
+  const formHasInput = fields.meatReceived !== '' || fields.meatSold !== '' || fields.damaged !== '';
+
+  // Stock Left logic:
+  // - User is typing new data → use yesterday's base + formula (supports editing)
+  // - Form is empty + existing report for this date → show saved result
+  // - Form is empty + no existing report → show carry-over from previous day
+  const stockLeft = formHasInput
+    ? previousStock + meatReceivedNum - meatSoldNum - damagedNum
+    : (existingData ? existingData.stockLeft : previousStock);
 
   const [totalCost, setTotalCost] = useState(0);
   const [totalSales, setTotalSales] = useState(0);
@@ -188,10 +195,10 @@ function ButcherKibungoForm() {
 
       toast('✅ Butchery daily report submitted successfully!', 'success');
       
-      // Immediately update previousStock to the just-submitted stockLeft
-      // so if user changes date to the next day, the carry-over is correct
+      // Immediately set existingData so stockLeft shows the saved result
+      // even before the API re-fetch completes
       const savedStockLeft = result.stockLeft ?? stockLeft;
-      setPreviousStock(savedStockLeft);
+      setExistingData({ stockLeft: savedStockLeft });
 
       resetForm();
       router.refresh();

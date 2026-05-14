@@ -101,7 +101,11 @@ function ButcherNyabugogoForm() {
   const damagedNum = Number(fields.damaged) || 0;
   const expensesNum = Number(fields.expenses) || 0;
 
-  const stockLeft = previousStock + meatReceivedNum - meatSoldNum - damagedNum;
+  const formHasInput = fields.meatReceived !== '' || fields.meatSold !== '' || fields.damaged !== '';
+
+  const stockLeft = formHasInput
+    ? previousStock + meatReceivedNum - meatSoldNum - damagedNum
+    : (existingData ? existingData.stockLeft : previousStock);
 
   const [totalCost, setTotalCost] = useState(0);
   const [totalSales, setTotalSales] = useState(0);
@@ -186,9 +190,8 @@ function ButcherNyabugogoForm() {
 
       toast('✅ Butchery daily report submitted successfully!', 'success');
 
-      // Immediately update previousStock to the just-submitted stockLeft
       const savedStockLeft = result.stockLeft ?? stockLeft;
-      setPreviousStock(savedStockLeft);
+      setExistingData({ stockLeft: savedStockLeft });
 
       resetForm();
       router.refresh();
