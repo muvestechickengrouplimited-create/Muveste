@@ -160,25 +160,29 @@ export async function GET(request: Request) {
 
       if (forDate) {
         const targetDate = new Date(forDate);
-        const targetDateStr = forDate;
+        const targetDateStr = targetDate.toISOString().split('T')[0];
 
         const parsed = dataRows
-          .map(row => ({ 
-            date: (row[0] || '').split('T')[0], 
-            meatReceived: parseNum(row[1]),
-            buyingPricePerKg: parseNum(row[2]),
-            meatSold: parseNum(row[4]),
-            sellingPricePerKg: parseNum(row[5]),
-            damaged: parseNum(row[6]),
-            expenses: parseNum(row[7]),
-            stockLeft: parseNum(row[10]),
-            notes: row[11] || ''
-          }))
-          .filter(r => !isNaN(new Date(r.date).getTime()));
+          .map(row => {
+            const d = new Date(row[0]);
+            if (isNaN(d.getTime())) return null;
+            return { 
+              date: d.toISOString().split('T')[0],
+              meatReceived: parseNum(row[1]),
+              buyingPricePerKg: parseNum(row[2]),
+              meatSold: parseNum(row[4]),
+              sellingPricePerKg: parseNum(row[5]),
+              damaged: parseNum(row[6]),
+              expenses: parseNum(row[7]),
+              stockLeft: parseNum(row[10]),
+              notes: row[11] || ''
+            };
+          })
+          .filter((r): r is NonNullable<typeof r> => r !== null);
 
         const before = parsed
-          .filter(r => new Date(r.date) < targetDate)
-          .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+          .filter(r => r.date < targetDateStr)
+          .sort((a, b) => b.date.localeCompare(a.date));
         
         const previousStock = before.length > 0 ? before[0].stockLeft : 0;
         const sameDay = parsed.find(r => r.date === targetDateStr);
