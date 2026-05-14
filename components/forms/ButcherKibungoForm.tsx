@@ -77,6 +77,7 @@ function ButcherKibungoForm() {
 
   const [previousStock, setPreviousStock] = useState(0);
   const [loadingStock, setLoadingStock] = useState(true);
+  const [existingData, setExistingData] = useState<any>(null);
 
   // Re-fetch previousStock every time the date changes
   useEffect(() => {
@@ -86,8 +87,9 @@ function ButcherKibungoForm() {
       .then(r => r.json())
       .then(data => {
         setPreviousStock(data.previousStock || 0);
+        setExistingData(data.existingData || null);
       })
-      .catch(() => setPreviousStock(0))
+      .catch(() => { setPreviousStock(0); setExistingData(null); })
       .finally(() => setLoadingStock(false));
   }, [fields.date]);
 
@@ -99,6 +101,8 @@ function ButcherKibungoForm() {
   const damagedNum = Number(fields.damaged) || 0;
   const expensesNum = Number(fields.expenses) || 0;
 
+  // The math ALWAYS uses previousStock (Yesterday's closing) as the starting point.
+  // This allows the user to 'edit' today's report correctly.
   const stockLeft = previousStock + meatReceivedNum - meatSoldNum - damagedNum;
 
   const [totalCost, setTotalCost] = useState(0);

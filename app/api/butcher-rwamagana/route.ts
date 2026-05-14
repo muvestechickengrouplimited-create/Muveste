@@ -160,16 +160,33 @@ export async function GET(request: Request) {
 
       if (forDate) {
         const targetDate = new Date(forDate);
-        const sorted = dataRows
-          .map(row => ({ date: row[0], stockLeft: parseNum(row[10]) }))
-          .filter(r => {
-            const d = new Date(r.date);
-            return !isNaN(d.getTime()) && d < targetDate;
-          })
-          .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        const targetDateStr = forDate;
 
-        const previousStock = sorted.length > 0 ? sorted[0].stockLeft : 0;
-        return NextResponse.json({ previousStock });
+        const parsed = dataRows
+          .map(row => ({ 
+            date: (row[0] || '').split('T')[0], 
+            meatReceived: parseNum(row[1]),
+            buyingPricePerKg: parseNum(row[2]),
+            meatSold: parseNum(row[4]),
+            sellingPricePerKg: parseNum(row[5]),
+            damaged: parseNum(row[6]),
+            expenses: parseNum(row[7]),
+            stockLeft: parseNum(row[10]),
+            notes: row[11] || ''
+          }))
+          .filter(r => !isNaN(new Date(r.date).getTime()));
+
+        const before = parsed
+          .filter(r => new Date(r.date) < targetDate)
+          .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        
+        const previousStock = before.length > 0 ? before[0].stockLeft : 0;
+        const sameDay = parsed.find(r => r.date === targetDateStr);
+
+        return NextResponse.json({ 
+          previousStock, 
+          existingData: sameDay || null 
+        });
       }
 
       const lastRow = dataRows[0];

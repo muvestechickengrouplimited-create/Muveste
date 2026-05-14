@@ -77,6 +77,7 @@ function ButcherNyabugogoForm() {
 
   const [previousStock, setPreviousStock] = useState(0);
   const [loadingStock, setLoadingStock] = useState(true);
+  const [existingData, setExistingData] = useState<any>(null);
 
   // Re-fetch previousStock every time the date changes
   useEffect(() => {
@@ -86,8 +87,9 @@ function ButcherNyabugogoForm() {
       .then(r => r.json())
       .then(data => {
         setPreviousStock(data.previousStock || 0);
+        setExistingData(data.existingData || null);
       })
-      .catch(() => setPreviousStock(0))
+      .catch(() => { setPreviousStock(0); setExistingData(null); })
       .finally(() => setLoadingStock(false));
   }, [fields.date]);
 

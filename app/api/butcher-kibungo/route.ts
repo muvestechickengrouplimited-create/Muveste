@@ -159,19 +159,37 @@ export async function GET(request: Request) {
       const forDate = searchParams.get('forDate'); // e.g. '2026-05-14'
 
       if (forDate) {
-        // Find the most recent row with a date BEFORE forDate (sorted newest-first)
         const targetDate = new Date(forDate);
-        // Sort all data rows by date descending to be safe
-        const sorted = dataRows
-          .map(row => ({ date: row[0], stockLeft: parseNum(row[10]) }))
-          .filter(r => {
-            const d = new Date(r.date);
-            return !isNaN(d.getTime()) && d < targetDate;
-          })
-          .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        const targetDateStr = forDate;
 
-        const previousStock = sorted.length > 0 ? sorted[0].stockLeft : 0;
-        return NextResponse.json({ previousStock });
+        const parsed = dataRows
+          .map(row => ({ 
+            date: (row[0] || '').split('T')[0], 
+            meatReceived: parseNum(row[1]),
+            buyingPricePerKg: parseNum(row[2]),
+            meatSold: parseNum(row[4]),
+            sellingPricePerKg: parseNum(row[5]),
+            damaged: parseNum(row[6]),
+            expenses: parseNum(row[7]),
+            stockLeft: parseNum(row[10]),
+            notes: row[11] || ''
+          }))
+          .filter(r => !isNaN(new Date(r.date).getTime()));
+
+        // 1. Get the real 'previousStock' (the most recent row strictly BEFORE this date)
+        const before = parsed
+          .filter(r => new Date(r.date) < targetDate)
+          .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        
+        const previousStock = before.length > 0 ? before[0].stockLeft : 0;
+
+        // 2. Check if a report already exists ON this date (for editing/viewing)
+        const sameDay = parsed.find(r => r.date === targetDateStr);
+
+        return NextResponse.json({ 
+          previousStock, 
+          existingData: sameDay || null 
+        });
       }
 
       // Fallback: no date specified — return most recent row's stock
