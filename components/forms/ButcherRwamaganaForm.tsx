@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { auth } from '../../lib/firebase';
 import { Button } from '../ui/Button';
@@ -77,19 +77,24 @@ function ButcherRwamaganaForm() {
 
   const [previousStock, setPreviousStock] = useState(0);
   const [loadingStock, setLoadingStock] = useState(true);
-  const [existingData, setExistingData] = useState<any>(null);
+  const [savedStockLeft, setSavedStockLeft] = useState<number | null>(null);
+  const justSubmittedRef = useRef(false);
 
   // Re-fetch previousStock every time the date changes
   useEffect(() => {
     if (!fields.date) return;
+    if (justSubmittedRef.current) {
+      justSubmittedRef.current = false;
+      return;
+    }
     setLoadingStock(true);
+    setSavedStockLeft(null);
     fetch(`/api/butcher-rwamagana?lastStock=1&forDate=${fields.date}`)
       .then(r => r.json())
       .then(data => {
         setPreviousStock(data.previousStock || 0);
-        setExistingData(data.existingData || null);
       })
-      .catch(() => { setPreviousStock(0); setExistingData(null); })
+      .catch(() => setPreviousStock(0))
       .finally(() => setLoadingStock(false));
   }, [fields.date]);
 
@@ -105,7 +110,7 @@ function ButcherRwamaganaForm() {
 
   const stockLeft = formHasInput
     ? previousStock + meatReceivedNum - meatSoldNum - damagedNum
-    : (existingData ? existingData.stockLeft : previousStock);
+    : (savedStockLeft !== null ? savedStockLeft : previousStock);
 
   const [totalCost, setTotalCost] = useState(0);
   const [totalSales, setTotalSales] = useState(0);
@@ -124,6 +129,9 @@ function ButcherRwamaganaForm() {
     const updated = { ...fields, [name]: value };
     setFields(updated);
     if (submitted) setErrors(validate(updated));
+    if (name === 'meatReceived' || name === 'meatSold' || name === 'damaged') {
+      setSavedStockLeft(null);
+    }
   }
 
   // ── Reset ─────────────────────────────────────────────────────────────────
@@ -190,11 +198,10 @@ function ButcherRwamaganaForm() {
 
       toast('✅ Butchery daily report submitted successfully!', 'success');
 
-      const savedStockLeft = result.stockLeft ?? stockLeft;
-      setExistingData({ stockLeft: savedStockLeft });
+      setSavedStockLeft(result.stockLeft ?? stockLeft);
+      justSubmittedRef.current = true;
 
       resetForm();
-      router.refresh();
     } catch (error: unknown) {
       console.error('Submission error:', error);
       const msg =

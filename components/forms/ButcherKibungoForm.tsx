@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { auth } from '../../lib/firebase';
 import { Button } from '../ui/Button';
@@ -77,19 +77,25 @@ function ButcherKibungoForm() {
 
   const [previousStock, setPreviousStock] = useState(0);
   const [loadingStock, setLoadingStock] = useState(true);
-  const [existingData, setExistingData] = useState<any>(null);
+  const [savedStockLeft, setSavedStockLeft] = useState<number | null>(null);
+  const justSubmittedRef = useRef(false);
 
   // Re-fetch previousStock every time the date changes
   useEffect(() => {
     if (!fields.date) return;
+    // Skip clearing savedStockLeft if we just submitted (form reset triggers this)
+    if (justSubmittedRef.current) {
+      justSubmittedRef.current = false;
+      return;
+    }
     setLoadingStock(true);
+    setSavedStockLeft(null);
     fetch(`/api/butcher-kibungo?lastStock=1&forDate=${fields.date}`)
       .then(r => r.json())
       .then(data => {
         setPreviousStock(data.previousStock || 0);
-        setExistingData(data.existingData || null);
       })
-      .catch(() => { setPreviousStock(0); setExistingData(null); })
+      .catch(() => setPreviousStock(0))
       .finally(() => setLoadingStock(false));
   }, [fields.date]);
 
@@ -105,12 +111,12 @@ function ButcherKibungoForm() {
   const formHasInput = fields.meatReceived !== '' || fields.meatSold !== '' || fields.damaged !== '';
 
   // Stock Left logic:
-  // - User is typing new data → use yesterday's base + formula (supports editing)
-  // - Form is empty + existing report for this date → show saved result
-  // - Form is empty + no existing report → show carry-over from previous day
+  // 1. User is typing → formula with yesterday's base (for editing support)
+  // 2. Just submitted (savedStockLeft set) → show saved result directly
+  // 3. Fresh form → show carry-over from previous day
   const stockLeft = formHasInput
     ? previousStock + meatReceivedNum - meatSoldNum - damagedNum
-    : (existingData ? existingData.stockLeft : previousStock);
+    : (savedStockLeft !== null ? savedStockLeft : previousStock);
 
   const [totalCost, setTotalCost] = useState(0);
   const [totalSales, setTotalSales] = useState(0);
@@ -129,6 +135,10 @@ function ButcherKibungoForm() {
     const updated = { ...fields, [name]: value };
     setFields(updated);
     if (submitted) setErrors(validate(updated));
+    // Clear saved stock when user starts editing
+    if (name === 'meatReceived' || name === 'meatSold' || name === 'damaged') {
+      setSavedStockLeft(null);
+    }
   }
 
   // ── Reset ─────────────────────────────────────────────────────────────────
@@ -195,13 +205,11 @@ function ButcherKibungoForm() {
 
       toast('✅ Butchery daily report submitted successfully!', 'success');
       
-      // Immediately set existingData so stockLeft shows the saved result
-      // even before the API re-fetch completes
-      const savedStockLeft = result.stockLeft ?? stockLeft;
-      setExistingData({ stockLeft: savedStockLeft });
+      // Save the result stockLeft so it shows correctly after form resets
+      setSavedStockLeft(result.stockLeft ?? stockLeft);
+      justSubmittedRef.current = true; // prevent useEffect from clearing savedStockLeft
 
       resetForm();
-      router.refresh();
     } catch (error: unknown) {
       console.error('Submission error:', error);
       const msg =
