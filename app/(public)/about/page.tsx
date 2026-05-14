@@ -129,7 +129,7 @@ export default function AboutPage() {
                 By controlling the entire process from hatching to daily logistics, we bypass brokers. That is how we deliver both full chicken and premium cut chicken at highly competitive, fair market rates to our meat outlets.
               </p>
               <Link 
-                href="/#checkout" 
+                href="/#products" 
                 className="inline-block bg-[#FFDE1A] text-black font-bold rounded-xl px-8 py-4 text-xs hover:bg-[#e6c710] transition-all shadow-lg"
               >
                 Place An Order Now
@@ -221,7 +221,7 @@ export default function AboutPage() {
             </p>
             
             <Link 
-              href="/#checkout" 
+              href="/#products" 
               className="relative z-10 inline-block bg-[#FFDE1A] text-black font-bold rounded-xl px-10 py-5 text-xs hover:bg-[#e6c710] hover:scale-105 transition-all shadow-md"
             >
               Order via WhatsApp / Call &rarr;

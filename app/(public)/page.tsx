@@ -68,12 +68,12 @@ export default function HomePage() {
   const totalPrice = quantity * unitPrice;
 
   const whatsappNumbers: Record<string, string> = {
-    Kibungo  : '250788227587',
-    Rwamagana: '250788227587',
-    Nyabugogo: '250788227587',
+    Kibungo  : '250785329989',
+    Rwamagana: '250785329989',
+    Nyabugogo: '250785329989',
   }
   
-  const whatsappNumber = selectedLocation ? (whatsappNumbers[selectedLocation] ?? '250788227587') : '250788227587';
+  const whatsappNumber = selectedLocation ? (whatsappNumbers[selectedLocation] ?? '250785329989') : '250785329989';
 
   const whatsappMessage = 
     `Hello Muveste!\n` +
@@ -158,7 +158,7 @@ export default function HomePage() {
 
           {/* CTA BUTTONS */}
           <div className="flex flex-col sm:flex-row gap-[14px] mt-4 md:mt-[40px] w-full sm:w-auto order-3 md:order-3 md:col-start-1 md:row-start-2 md:self-start">
-            <a href="#checkout" className="bg-[#FFDE1A] text-[#133813] rounded-xl px-[32px] py-[16px] text-base font-bold shadow-[0_4px_20px_rgba(255,222,26,0.3)] hover:bg-[#e6c710] hover:-translate-y-[1px] transition-all text-center">
+            <a href="#products" className="bg-[#FFDE1A] text-[#133813] rounded-xl px-[32px] py-[16px] text-base font-bold shadow-[0_4px_20px_rgba(255,222,26,0.3)] hover:bg-[#e6c710] hover:-translate-y-[1px] transition-all text-center">
               Order Now
             </a>
             <Link href="/about" className="bg-transparent text-white border-2 border-[rgba(255,255,255,0.25)] rounded-xl px-[32px] py-[16px] text-base font-semibold hover:border-[rgba(255,255,255,0.6)] transition-all text-center">

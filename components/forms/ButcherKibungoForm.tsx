@@ -78,15 +78,18 @@ function ButcherKibungoForm() {
   const [previousStock, setPreviousStock] = useState(0);
   const [loadingStock, setLoadingStock] = useState(true);
 
+  // Re-fetch previousStock every time the date changes
   useEffect(() => {
-    fetch('/api/butcher-kibungo?lastStock=1')
+    if (!fields.date) return;
+    setLoadingStock(true);
+    fetch(`/api/butcher-kibungo?lastStock=1&forDate=${fields.date}`)
       .then(r => r.json())
       .then(data => {
         setPreviousStock(data.previousStock || 0);
       })
       .catch(() => setPreviousStock(0))
       .finally(() => setLoadingStock(false));
-  }, []);
+  }, [fields.date]);
 
   // ── Auto-calculated values ────────────────────────────────────────────────
   const meatReceivedNum = Number(fields.meatReceived) || 0;
@@ -181,6 +184,11 @@ function ButcherKibungoForm() {
 
       toast('✅ Butchery daily report submitted successfully!', 'success');
       
+      // Immediately update previousStock to the just-submitted stockLeft
+      // so if user changes date to the next day, the carry-over is correct
+      const savedStockLeft = result.stockLeft ?? stockLeft;
+      setPreviousStock(savedStockLeft);
+
       resetForm();
       router.refresh();
     } catch (error: unknown) {

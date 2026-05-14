@@ -131,7 +131,7 @@ export async function POST(request: Request) {
       now.toISOString(),
     ]);
 
-    return NextResponse.json({ success: true, totalSales, profit }, { status: 201 });
+    return NextResponse.json({ success: true, totalSales, profit, stockLeft }, { status: 201 });
   } catch (error: any) {
     console.error('API Error in butcher/route.ts [POST]:', error);
     return NextResponse.json(
@@ -156,6 +156,25 @@ export async function GET(request: Request) {
         return NextResponse.json({ previousStock: 0 });
       }
       const dataRows = rows.slice(1);
+      const forDate = searchParams.get('forDate'); // e.g. '2026-05-14'
+
+      if (forDate) {
+        // Find the most recent row with a date BEFORE forDate (sorted newest-first)
+        const targetDate = new Date(forDate);
+        // Sort all data rows by date descending to be safe
+        const sorted = dataRows
+          .map(row => ({ date: row[0], stockLeft: parseNum(row[10]) }))
+          .filter(r => {
+            const d = new Date(r.date);
+            return !isNaN(d.getTime()) && d < targetDate;
+          })
+          .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+        const previousStock = sorted.length > 0 ? sorted[0].stockLeft : 0;
+        return NextResponse.json({ previousStock });
+      }
+
+      // Fallback: no date specified — return most recent row's stock
       const lastRow = dataRows[0];
       const previousStock = parseFloat(lastRow?.[10]) || 0;
       return NextResponse.json({ previousStock });
