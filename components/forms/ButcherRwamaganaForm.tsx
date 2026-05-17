@@ -102,6 +102,31 @@ function ButcherRwamaganaForm() {
       .then(r => r.json())
       .then(data => {
         setPreviousStock(data.previousStock || 0);
+        if (data.existingData) {
+          const e = data.existingData;
+          setFields(prev => ({
+            ...prev,
+            meatReceived: e.meatReceived ? String(e.meatReceived) : '',
+            buyingPricePerKg: e.buyingPricePerKg ? String(e.buyingPricePerKg) : '',
+            meatSold: e.meatSold ? String(e.meatSold) : '',
+            sellingPricePerKg: e.sellingPricePerKg ? String(e.sellingPricePerKg) : '',
+            damaged: e.damaged ? String(e.damaged) : '',
+            expenses: e.expenses ? String(e.expenses) : '',
+            notes: e.notes || '',
+          }));
+          setSavedStockLeft(e.stockLeft);
+        } else {
+          setFields(prev => ({
+            ...prev,
+            meatReceived: '',
+            buyingPricePerKg: '',
+            meatSold: '',
+            sellingPricePerKg: '',
+            damaged: '',
+            expenses: '',
+            notes: '',
+          }));
+        }
       })
       .catch(() => setPreviousStock(0))
       .finally(() => setLoadingStock(false));
