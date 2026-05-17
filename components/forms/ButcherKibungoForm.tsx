@@ -55,6 +55,15 @@ const inputClass =
   'focus-visible:ring-[#F5C518] focus-visible:ring-offset-2 transition-colors ' +
   'placeholder:text-gray-400';
 
+/** Get today's date as YYYY-MM-DD in local timezone (not UTC) */
+function getLocalDateStr(): string {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
 // ─── Component ───────────────────────────────────────────────────────────────
 function ButcherKibungoForm() {
   const [isLoading, setIsLoading] = useState(false);
@@ -62,7 +71,7 @@ function ButcherKibungoForm() {
   const router = useRouter();
 
   const [fields, setFields] = useState({
-    date: new Date().toISOString().split('T')[0],
+    date: getLocalDateStr(),
     meatReceived: '',
     buyingPricePerKg: '',
     meatSold: '',
@@ -144,7 +153,7 @@ function ButcherKibungoForm() {
   // ── Reset ─────────────────────────────────────────────────────────────────
   function resetForm() {
     setFields({
-      date: new Date().toISOString().split('T')[0],
+      date: getLocalDateStr(),
       meatReceived: '',
       buyingPricePerKg: '',
       meatSold: '',
