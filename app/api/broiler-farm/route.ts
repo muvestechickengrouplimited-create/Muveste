@@ -16,6 +16,31 @@ function parseNum(val: unknown): number {
   return 0;
 }
 
+/**
+ * Timezone-safe date normalizer.
+ * Converts any date value (string or Date) into 'YYYY-MM-DD'
+ * using LOCAL time, never UTC — so '5/17/2026' won't shift to the previous day.
+ */
+function toDateStr(val: string | Date): string {
+  if (!val) return '';
+  if (typeof val === 'string') {
+    const trimmed = val.trim();
+    if (/^\d{4}-\d{2}-\d{2}/.test(trimmed)) return trimmed.substring(0, 10);
+    const d = new Date(trimmed);
+    if (!isNaN(d.getTime())) {
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${y}-${m}-${day}`;
+    }
+  }
+  const d = val instanceof Date ? val : new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
 // ─── POST — append one row ─────────────────────────────────────────────────
 export async function POST(request: Request) {
   try {
