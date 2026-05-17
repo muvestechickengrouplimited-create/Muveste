@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { prependRow, getRows } from '../../../lib/sheets';
+import { prependRow, getRows, updateRow } from '../../../lib/sheets';
 import { formatDate, formatTime } from '../../../lib/utils';
 import admin from '../../../lib/firebase-admin';
 
@@ -124,10 +124,11 @@ export async function POST(request: Request) {
     const totalSales = mSold * mSelPrc;
     const profit = totalSales - totalCost - mExp;
     const stockLeft = Number(previousStock) + mRec - mSold - mDmg;
+    const targetDateStr = toDateStr(date);
     const now = new Date();
 
     const rowData = [
-      date,
+      targetDateStr,
       mRec,
       mBuyPrc,
       totalCost,
@@ -143,7 +144,22 @@ export async function POST(request: Request) {
       now.toISOString(),
     ];
 
-    await prependRow('butcher-rwamagana', rowData);
+    const rows = await getRows('butcher-rwamagana', true);
+    let existingRowIndex = -1;
+    if (rows && rows.length > 1) {
+      for (let i = 1; i < rows.length; i++) {
+        if (toDateStr(rows[i][0]) === targetDateStr) {
+          existingRowIndex = i + 1;
+          break;
+        }
+      }
+    }
+
+    if (existingRowIndex > -1) {
+      await updateRow('butcher-rwamagana', existingRowIndex, rowData);
+    } else {
+      await prependRow('butcher-rwamagana', rowData);
+    }
 
     // 5. Log to admin-log tab
     await prependRow('admin-log', [

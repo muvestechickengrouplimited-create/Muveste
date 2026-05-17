@@ -112,8 +112,10 @@ export async function POST(request: Request) {
     // 6:Number of Birds, 7:Mortality, 8:Birds Sold, 9:Live Birds, 
     // 10:Avg Weight, 11:Kgs Sold, 12:Total Weight, 13:Price Per kg, 
     // 14:Expenses, 15:Revenue, 16:Profit, 17:Notes, 18:Submitted By, 19:Timestamp
+    const targetDateStr = toDateStr(date);
+
     const rowData = [
-      date,
+      targetDateStr,
       batch,
       parseNum(feedQty),
       parseNum(price),
@@ -142,7 +144,7 @@ export async function POST(request: Request) {
       // Find row with same date and batch
       // index 0 is header, so start from 1
       for (let i = 1; i < existingRows.length; i++) {
-        if (existingRows[i][0] === date && existingRows[i][1] === batch) {
+        if (toDateStr(existingRows[i][0]) === targetDateStr && existingRows[i][1] === batch) {
           existingRowIndex = i + 1; // Google Sheets is 1-indexed
           break;
         }
