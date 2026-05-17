@@ -333,32 +333,17 @@ export default function AdminOverview() {
           { label: 'Kgs sold', value: parseNum(bfData[11]).toLocaleString() }
         ];
         
-        const bkData = dpts['bk']?.rawData || [];
-        const bkMetrics = [
-          { label: 'Meat received', value: `${parseNum(bkData[1]).toLocaleString()} kg` },
-          { label: 'Meat sold', value: `${parseNum(bkData[2]).toLocaleString()} kg` },
-          { label: 'Damaged', value: `${parseNum(bkData[4]).toLocaleString()} kg` }
-        ];
-
-        const brData = dpts['br']?.rawData || [];
-        const brMetrics = [
-          { label: 'Meat received', value: `${parseNum(brData[1]).toLocaleString()} kg` },
-          { label: 'Meat sold', value: `${parseNum(brData[2]).toLocaleString()} kg` },
-          { label: 'Damaged', value: `${parseNum(brData[4]).toLocaleString()} kg` }
-        ];
-
-        const bnData = dpts['bn']?.rawData || [];
-        const bnMetrics = [
-          { label: 'Meat received', value: `${parseNum(bnData[1]).toLocaleString()} kg` },
-          { label: 'Meat sold', value: `${parseNum(bnData[2]).toLocaleString()} kg` },
-          { label: 'Damaged', value: `${parseNum(bnData[4]).toLocaleString()} kg` }
+        const mapButcher = (bData: any) => [
+          { label: 'Meat received', value: `${parseNum(bData[1]).toLocaleString()} kg` },
+          { label: 'Meat sold', value: `${parseNum(bData[4]).toLocaleString()} kg` },
+          { label: 'Damaged', value: `${parseNum(bData[6]).toLocaleString()} kg` }
         ];
 
         // Merge display metrics into API dept data (API already has correct revenue/expenses/profit incl. finance extras)
         dpts['broiler'] = { ...dpts['broiler'], metrics: bfMetrics };
-        dpts['bk'] = { ...dpts['bk'], metrics: bkMetrics };
-        dpts['br'] = { ...dpts['br'], metrics: brMetrics };
-        dpts['bn'] = { ...dpts['bn'], metrics: bnMetrics };
+        dpts['bk'] = { ...dpts['bk'], metrics: mapButcher(dpts['bk']?.rawData || []) };
+        dpts['br'] = { ...dpts['br'], metrics: mapButcher(dpts['br']?.rawData || []) };
+        dpts['bn'] = { ...dpts['bn'], metrics: mapButcher(dpts['bn']?.rawData || []) };
 
         // Build department summaries — use API's `active` flag (based on actual data rows)
         const deptNames = Object.keys(DEPT_CONFIG);

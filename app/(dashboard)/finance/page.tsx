@@ -520,8 +520,12 @@ export default function FinanceDashboard() {
         const newFields: Record<string, string> = {
           broilerRevenue: data.broilerRevenue?.toString() || '0',
           broilerExpenses: data.broilerExpenses?.toString() || '0',
-          butcherRevenue: data.butcherRevenue?.toString() || '0',
-          butcherExpenses: data.butcherExpenses?.toString() || '0',
+          kibungoRevenue: data.kibungoRevenue?.toString() || '0',
+          kibungoExpenses: data.kibungoExpenses?.toString() || '0',
+          rwamaganaRevenue: data.rwamaganaRevenue?.toString() || '0',
+          rwamaganaExpenses: data.rwamaganaExpenses?.toString() || '0',
+          nyabugogoRevenue: data.nyabugogoRevenue?.toString() || '0',
+          nyabugogoExpenses: data.nyabugogoExpenses?.toString() || '0',
         };
 
         // Populate per-batch revenue fields from API batch data
@@ -780,10 +784,14 @@ export default function FinanceDashboard() {
 
       const payload = {
         date: formDate,
-        broilerRevenue: bfRev, 
+        broilerRevenue: bfRev,
         broilerExpenses: bfExp,
-        butcherRevenue: buRev, 
-        butcherExpenses: buExp,
+        kibungoRevenue: bkRev,
+        kibungoExpenses: bkExp,
+        rwamaganaRevenue: brRev,
+        rwamaganaExpenses: brExp,
+        nyabugogoRevenue: bnRev,
+        nyabugogoExpenses: bnExp,
       };
 
       const res = await fetch('/api/finance', {

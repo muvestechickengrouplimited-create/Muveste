@@ -117,17 +117,15 @@ export async function GET(request: Request) {
       }
 
       if (sheetName.startsWith('butcher')) {
+        // [date(0), meatRec(1), mBuyPrc(2), totalCost(3), meatSold(4), mSelPrc(5), mDmg(6), mExp(7), totalSales(8), profit(9), stockLeft(10), notes(11), by(12), ts(13)]
         return NextResponse.json({
           department: resolvedName,
           date,
           fields: [
             { label: 'Meat received', value: `${parseNum(todayRow[1]).toLocaleString()} kg` },
-            { label: 'Buying price', value: `RWF ${parseNum(todayRow[2]).toLocaleString()}` },
             { label: 'Meat sold', value: `${parseNum(todayRow[4]).toLocaleString()} kg` },
-            { label: 'Selling price', value: `RWF ${parseNum(todayRow[5]).toLocaleString()}` },
-            { label: 'Damaged', value: `${parseNum(todayRow[6]).toLocaleString()} kg` },
-            { label: 'Total cost', value: `RWF ${parseNum(todayRow[3]).toLocaleString()}` },
-            { label: 'Stock Left', value: `${parseNum(todayRow[10]).toLocaleString()} kg` },
+            { label: 'Price per kg', value: `RWF ${parseNum(todayRow[5]).toLocaleString()}` },
+            { label: 'Stock left', value: `${parseNum(todayRow[10]).toLocaleString()} kg` },
           ],
           medications: null,
           revenue: parseNum(todayRow[8]),
